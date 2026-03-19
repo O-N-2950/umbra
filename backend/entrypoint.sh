@@ -1,26 +1,26 @@
 #!/bin/sh
-# MATCHO — Entrypoint (Railway / Docker)
+# UMBRA — Entrypoint (Railway / Docker)
 # Leçon PEP's #7 : Alembic migrations AVANT démarrage.
 # Leçon PEP's #8 : Si migration échoue, on démarre quand même.
 
 set -e
 
 echo "═══════════════════════════════════════"
-echo "🚀 MATCHO API — Initialisation"
+echo "🌑 UMBRA API — Initialisation"
 echo "   Env: ${ENVIRONMENT:-production}"
 echo "   Port: ${PORT:-8000}"
 echo "═══════════════════════════════════════"
 
 # ── 0. Fix DATABASE_URL pour Railway ──
-# Railway fournit postgresql:// mais SQLAlchemy async veut postgresql+asyncpg://
+# Railway fournit postgres:// mais SQLAlchemy veut postgresql://
 if [ -n "$DATABASE_URL" ]; then
     case "$DATABASE_URL" in
-        postgresql+asyncpg://*)
-            echo "✅ DB: PostgreSQL (déjà async)"
+        postgresql://*|sqlite://*)
+            echo "✅ DB: URL OK"
             ;;
-        postgresql://*)
-            export DATABASE_URL=$(echo "$DATABASE_URL" | sed 's|^postgresql://|postgresql+asyncpg://|')
-            echo "✅ DB: PostgreSQL (converti → asyncpg)"
+        postgres://*)
+            export DATABASE_URL=$(echo "$DATABASE_URL" | sed 's|^postgres://|postgresql://|')
+            echo "✅ DB: PostgreSQL (converti postgres → postgresql)"
             ;;
         *)
             echo "✅ DB: $DATABASE_URL"
@@ -40,7 +40,7 @@ fi
 
 # ── 2. Démarrage Uvicorn ──
 echo "🌐 Démarrage sur :${PORT:-8000}"
-exec uvicorn main:app \
+exec uvicorn umbra_main:app \
     --host 0.0.0.0 \
     --port ${PORT:-8000} \
     --no-access-log \
