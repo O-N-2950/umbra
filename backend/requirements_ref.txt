@@ -1,0 +1,51 @@
+# UMBRA + MATCHO API Dependencies
+# © 2026 PEP's Swiss SA
+
+# ── Core ──────────────────────────────────────────────────────────────
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+python-multipart>=0.0.6
+pydantic[email]>=2.5.0
+python-dotenv>=1.0.0
+
+# ── Database ───────────────────────────────────────────────────────────
+sqlalchemy>=2.0.25
+alembic>=1.13.0
+asyncpg>=0.29.0          # PostgreSQL async (prod)
+psycopg2-binary>=2.9.0   # PostgreSQL sync (Alembic migrations)
+
+# ── Auth & Security ────────────────────────────────────────────────────
+pyjwt>=2.8.0
+cryptography>=42.0.0
+passlib[bcrypt]>=1.7.4
+
+# ── AI ─────────────────────────────────────────────────────────────────
+google-genai>=1.0.0      # Gemini Flash (matching intel + prédictions)
+
+# ── Paiement ───────────────────────────────────────────────────────────
+stripe>=8.0.0            # Crédits contacts + abonnements
+
+# ── Email ──────────────────────────────────────────────────────────────
+resend>=0.7.0            # Magic link transactionnel
+
+# ── HTTP ───────────────────────────────────────────────────────────────
+httpx>=0.26.0            # Zefix API, UID Register, webhooks
+
+# ── Export & Parsing (MATCHO héritage) ────────────────────────────────
+defusedxml>=0.7.1        # CAMT053 XML (sécurisé contre XXE)
+pdftotext>=2.2.0         # Parsing PDF Crésus Grand Livre (requires libpoppler-cpp-dev)
+pandas>=2.1.0
+openpyxl>=3.1.0
+jinja2>=3.1.0
+
+# ── Monitoring ─────────────────────────────────────────────────────────
+# (Pattern Groupe NEO — crash_monitor.py inclus dans le repo)
+
+# ── Geo (optionnel — PostGIS en prod) ─────────────────────────────────
+# geoalchemy2>=0.15.0   # Décommenter si PostGIS activé sur Railway
+# shapely>=2.0.0        # Géométries (requis par geoalchemy2)
+
+# ── Dev utils (retirer en prod) ────────────────────────────────────────
+# pytest>=8.0.0
+# pytest-asyncio>=0.23.0
+# httpx>=0.26.0         # déjà inclus, sert aussi aux tests
