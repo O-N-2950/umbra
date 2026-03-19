@@ -15,7 +15,11 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from db.session import get_db
-from auth.jwt_utils import get_current_account
+# get_current_account importé depuis api.umbra_auth
+# Import différé pour éviter les cycles
+def get_current_account_dep():
+    from api.umbra_auth import get_current_account
+    return get_current_account
 
 logger = logging.getLogger("umbra.credits")
 
@@ -55,7 +59,7 @@ FLAG_FACTURATION = os.getenv("FLAG_FACTURATION", "false").lower() == "true"
 
 @router.get("/balance", response_model=BalanceResponse)
 def get_balance(
-    account=Depends(get_current_account),
+    account=Depends(lambda: __import__('api.umbra_auth', fromlist=['get_current_account']).get_current_account),
     db: Session = Depends(get_db),
 ):
     """Solde de crédits du compte courant."""
@@ -116,7 +120,7 @@ def get_pricing():
 @router.post("/checkout", response_model=CheckoutResponse)
 def create_checkout(
     body: CheckoutRequest,
-    account=Depends(get_current_account),
+    account=Depends(lambda: __import__('api.umbra_auth', fromlist=['get_current_account']).get_current_account),
     db: Session = Depends(get_db),
 ):
     """
