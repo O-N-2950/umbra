@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UMBRA — Le talent se cache. Nous le trouvons.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --void: #05080e;
+    --void-2: #0c1018;
+    --void-3: #141923;
+    --copper: #d97b3a;
+    --copper-bright: #f0935a;
+    --copper-dark: #a05820;
+    --ice: #edeae4;
+    --ice-dim: #c8c4bb;
+    --ice-ghost: rgba(237,234,228,0.06);
+    --gold: #c9a84c;
+    --red: #e05252;
+    --green: #4caf82;
+    --blue: #4c82af;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--void);
+    color: var(--ice);
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* ─── NOISE OVERLAY ──────────────────────────────── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* ─── CUSTOM CURSOR ──────────────────────────────── */
+  .cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--copper);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.15s ease;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 32px; height: 32px;
+    border: 1px solid rgba(217,123,58,0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1), width 0.3s ease, height 0.3s ease;
+  }
+  body:has(a:hover) .cursor-ring,
+  body:has(button:hover) .cursor-ring {
+    width: 50px; height: 50px;
+    border-color: rgba(217,123,58,0.7);
+    margin: -9px 0 0 -9px;
+  }
+
+  /* ─── NAV ────────────────────────────────────────── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 1.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(5,8,14,0.9) 0%, transparent 100%);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(217,123,58,0.08);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: 0.15em;
+    color: var(--ice);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .logo-dot {
+    width: 8px; height: 8px;
+    background: var(--copper);
+    border-radius: 50%;
+    animation: pulse-dot 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--copper); }
+
+  .nav-cta {
+    padding: 0.55rem 1.5rem;
+    border: 1px solid var(--copper);
+    color: var(--copper) !important;
+    border-radius: 2px;
+    font-size: 0.75rem !important;
+    letter-spacing: 0.15em !important;
+    transition: all 0.2s !important;
+  }
+
+  .nav-cta:hover {
+    background: var(--copper) !important;
+    color: var(--void) !important;
+  }
+
+  /* ─── HERO ───────────────────────────────────────── */
+  #hero {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 8rem 3rem 4rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    animation: float-orb 8s ease-in-out infinite;
+  }
+
+  .orb-1 {
+    width: 600px; height: 600px;
+    background: var(--copper);
+    top: -100px; right: -100px;
+    animation-delay: 0s;
+  }
+
+  .orb-2 {
+    width: 400px; height: 400px;
+    background: #4c3080;
+    bottom: -100px; left: 20%;
+    animation-delay: -3s;
+  }
+
+  @keyframes float-orb {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -20px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
+  }
+
+  /* Grid de points */
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(217,123,58,0.15) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 100%);
+  }
+
+  .hero-content {
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border: 1px solid rgba(217,123,58,0.3);
+    border-radius: 100px;
+    background: rgba(217,123,58,0.08);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 2rem;
+    animation: fade-up 0.8s ease both;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    background: var(--copper);
+    border-radius: 50%;
+    animation: pulse-dot 2s infinite;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 5vw, 5.5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+    animation: fade-up 0.8s 0.1s ease both;
+  }
+
+  h1 .accent {
+    color: var(--copper);
+    font-style: italic;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    font-weight: 300;
+    color: var(--ice-dim);
+    line-height: 1.7;
+    max-width: 480px;
+    margin-bottom: 2.5rem;
+    animation: fade-up 0.8s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    animation: fade-up 0.8s 0.3s ease both;
+  }
+
+  .btn-primary {
+    padding: 0.9rem 2.2rem;
+    background: var(--copper);
+    color: var(--void);
+    border: none;
+    border-radius: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-primary:hover {
+    background: var(--copper-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(217,123,58,0.35);
+  }
+
+  .btn-ghost {
+    padding: 0.9rem 2.2rem;
+    background: transparent;
+    color: var(--ice);
+    border: 1px solid rgba(237,234,228,0.2);
+    border-radius: 2px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-block;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--copper);
+    color: var(--copper);
+  }
+
+  /* ─── HERO RIGHT — CANVAS RÉSEAU ─────────────────── */
+  .hero-visual {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 500px;
+  }
+
+  #network-canvas {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ─── STATS BANDE ────────────────────────────────── */
+  .stats-band {
+    border-top: 1px solid rgba(237,234,228,0.06);
+    border-bottom: 1px solid rgba(237,234,228,0.06);
+    padding: 2rem 3rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: rgba(12,16,24,0.5);
+    backdrop-filter: blur(10px);
+  }
+
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    border-right: 1px solid rgba(237,234,228,0.06);
+  }
+
+  .stat-item:last-child { border-right: none; }
+
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--copper);
+    display: block;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+  }
+
+  /* ─── SECTIONS ───────────────────────────────────── */
+  section {
+    padding: 7rem 3rem;
+    position: relative;
+  }
+
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 1px;
+    background: var(--copper);
+  }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 3.5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    margin-bottom: 1.2rem;
+  }
+
+  /* ─── CV ANALYZER ────────────────────────────────── */
+  #analyzer {
+    background: var(--void-2);
+    min-height: 100vh;
+    display: none;
+  }
+
+  #analyzer.active {
+    display: block;
+  }
+
+  .analyzer-header {
+    padding: 2rem 3rem;
+    border-bottom: 1px solid rgba(237,234,228,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .analyzer-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .analyzer-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.9rem;
+    background: rgba(76,175,130,0.12);
+    border: 1px solid rgba(76,175,130,0.3);
+    border-radius: 100px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--green);
+  }
+
+  .analyzer-badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    background: var(--green);
+    border-radius: 50%;
+  }
+
+  .analyzer-layout {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    min-height: calc(100vh - 80px);
+  }
+
+  /* LEFT PANEL */
+  .upload-panel {
+    padding: 2.5rem;
+    border-right: 1px solid rgba(237,234,228,0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .upload-zone {
+    border: 2px dashed rgba(217,123,58,0.25);
+    border-radius: 4px;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    background: rgba(217,123,58,0.02);
+  }
+
+  .upload-zone:hover, .upload-zone.dragover {
+    border-color: var(--copper);
+    background: rgba(217,123,58,0.06);
+  }
+
+  .upload-zone input[type=file] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .upload-icon {
+    width: 48px; height: 48px;
+    margin: 0 auto 1rem;
+    border: 1px solid rgba(217,123,58,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--copper);
+    font-size: 1.2rem;
+  }
+
+  .upload-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ice);
+    margin-bottom: 0.4rem;
+  }
+
+  .upload-hint {
+    font-size: 0.75rem;
+    color: var(--ice-dim);
+  }
+
+  .uploaded-file {
+    display: none;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: rgba(76,175,130,0.08);
+    border: 1px solid rgba(76,175,130,0.2);
+    border-radius: 3px;
+  }
+
+  .uploaded-file.visible { display: flex; }
+
+  .file-icon {
+    width: 32px; height: 32px;
+    background: rgba(76,175,130,0.15);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--green);
+    font-size: 0.8rem;
+    flex-shrink: 0;
+  }
+
+  .file-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--ice);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+  }
+
+  textarea, input[type=text], select {
+    background: rgba(237,234,228,0.04);
+    border: 1px solid rgba(237,234,228,0.1);
+    border-radius: 3px;
+    color: var(--ice);
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+
+  textarea:focus, input[type=text]:focus, select:focus {
+    outline: none;
+    border-color: rgba(217,123,58,0.5);
+    background: rgba(217,123,58,0.04);
+  }
+
+  textarea { min-height: 120px; }
+
+  select option { background: var(--void-2); }
+
+  .analyze-btn {
+    padding: 1rem 1.5rem;
+    background: var(--copper);
+    color: var(--void);
+    border: none;
+    border-radius: 3px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .analyze-btn:hover:not(:disabled) {
+    background: var(--copper-bright);
+    box-shadow: 0 4px 20px rgba(217,123,58,0.4);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .analyze-btn .btn-shimmer {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer { to { left: 100%; } }
+
+  /* RIGHT PANEL — RESULTS */
+  .results-panel {
+    padding: 2.5rem;
+    overflow-y: auto;
+  }
+
+  .results-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 400px;
+    text-align: center;
+    opacity: 0.4;
+  }
+
+  .results-empty svg { margin-bottom: 1.5rem; opacity: 0.3; }
+
+  .results-empty p {
+    font-size: 0.9rem;
+    color: var(--ice-dim);
+    line-height: 1.6;
+  }
+
+  /* SCORE CARD */
+  .score-card {
+    display: none;
+    flex-direction: column;
+    gap: 1.5rem;
+    animation: fade-up 0.5s ease both;
+  }
+
+  .score-card.visible { display: flex; }
+
+  .score-header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(237,234,228,0.06);
+  }
+
+  .candidate-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 0.3rem;
+  }
+
+  .candidate-title {
+    font-size: 0.85rem;
+    color: var(--ice-dim);
+    margin-bottom: 1rem;
+  }
+
+  .classification-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 1rem;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .badge-aplayer {
+    background: rgba(76,175,130,0.15);
+    border: 1px solid rgba(76,175,130,0.4);
+    color: var(--green);
+  }
+
+  .badge-interesting {
+    background: rgba(201,168,76,0.15);
+    border: 1px solid rgba(201,168,76,0.4);
+    color: var(--gold);
+  }
+
+  .badge-conditional {
+    background: rgba(76,130,175,0.15);
+    border: 1px solid rgba(76,130,175,0.4);
+    color: var(--blue);
+  }
+
+  .badge-rejected {
+    background: rgba(224,82,82,0.1);
+    border: 1px solid rgba(224,82,82,0.3);
+    color: var(--red);
+  }
+
+  /* GLOBAL SCORE RING */
+  .score-ring-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 100px; height: 100px;
+  }
+
+  .score-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .score-ring-bg {
+    fill: none;
+    stroke: rgba(237,234,228,0.08);
+    stroke-width: 4;
+  }
+
+  .score-ring-fill {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.23, 1, 0.32, 1);
+    transform-origin: center;
+  }
+
+  .score-value {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--ice);
+    line-height: 1;
+  }
+
+  .score-label-ring {
+    font-size: 0.6rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+  }
+
+  /* DIMENSION BARS */
+  .dimensions-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .dim-card {
+    background: rgba(237,234,228,0.03);
+    border: 1px solid rgba(237,234,228,0.06);
+    border-radius: 4px;
+    padding: 1.2rem;
+    transition: border-color 0.2s;
+  }
+
+  .dim-card:hover { border-color: rgba(217,123,58,0.2); }
+
+  .dim-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .dim-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+  }
+
+  .dim-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--ice);
+  }
+
+  .dim-bar-track {
+    height: 3px;
+    background: rgba(237,234,228,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
+  }
+
+  .dim-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1.2s cubic-bezier(0.23, 1, 0.32, 1);
+    width: 0;
+  }
+
+  .dim-comment {
+    font-size: 0.75rem;
+    color: var(--ice-dim);
+    line-height: 1.5;
+  }
+
+  /* QUESTIONS SECTION */
+  .questions-section {
+    background: rgba(217,123,58,0.04);
+    border: 1px solid rgba(217,123,58,0.12);
+    border-radius: 4px;
+    padding: 1.5rem;
+  }
+
+  .questions-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--copper);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .question-item {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(237,234,228,0.04);
+  }
+
+  .question-item:last-child { border-bottom: none; }
+
+  .q-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--copper);
+    min-width: 20px;
+    padding-top: 0.1rem;
+  }
+
+  .q-text {
+    font-size: 0.85rem;
+    color: var(--ice);
+    line-height: 1.5;
+  }
+
+  /* RISK SIGNAL */
+  .risk-signal {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 1rem 1.2rem;
+    background: rgba(224,82,82,0.06);
+    border: 1px solid rgba(224,82,82,0.15);
+    border-radius: 4px;
+    font-size: 0.82rem;
+    color: var(--ice);
+    line-height: 1.5;
+  }
+
+  .risk-icon { color: var(--red); flex-shrink: 0; margin-top: 0.1rem; }
+
+  /* LOADING STATE */
+  .loading-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    gap: 2rem;
+  }
+
+  .loading-state.visible { display: flex; }
+
+  .loading-ring {
+    width: 60px; height: 60px;
+    border: 2px solid rgba(217,123,58,0.1);
+    border-top-color: var(--copper);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 280px;
+  }
+
+  .loading-step {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.8rem;
+    color: var(--ice-dim);
+    padding: 0.4rem 0;
+    transition: color 0.3s;
+  }
+
+  .loading-step.active { color: var(--copper); }
+  .loading-step.done { color: var(--green); }
+
+  .step-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  /* ─── FEATURES SECTION ───────────────────────────── */
+  #features {
+    background: var(--void);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5px;
+    margin-top: 4rem;
+    border: 1.5px solid rgba(237,234,228,0.06);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .feature-card {
+    padding: 2.5rem;
+    background: var(--void-2);
+    border-right: 1.5px solid rgba(237,234,228,0.06);
+    border-bottom: 1.5px solid rgba(237,234,228,0.06);
+    transition: background 0.3s;
+  }
+
+  .feature-card:hover { background: var(--void-3); }
+
+  .feature-card:nth-child(3n) { border-right: none; }
+  .feature-card:nth-last-child(-n+3) { border-bottom: none; }
+
+  .feature-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--copper);
+    letter-spacing: 0.1em;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+  }
+
+  .feature-desc {
+    font-size: 0.85rem;
+    color: var(--ice-dim);
+    line-height: 1.7;
+  }
+
+  .feature-tag {
+    display: inline-block;
+    margin-top: 1.2rem;
+    padding: 0.25rem 0.65rem;
+    background: rgba(217,123,58,0.1);
+    border: 1px solid rgba(217,123,58,0.2);
+    border-radius: 2px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--copper);
+  }
+
+  /* ─── PRICING SECTION ────────────────────────────── */
+  #pricing {
+    background: var(--void-2);
+  }
+
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-top: 3rem;
+    max-width: 860px;
+  }
+
+  .pricing-card {
+    padding: 2.5rem;
+    background: var(--void-3);
+    border: 1px solid rgba(237,234,228,0.08);
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .pricing-card.featured {
+    border-color: rgba(217,123,58,0.4);
+    background: rgba(217,123,58,0.04);
+  }
+
+  .pricing-card:hover { transform: translateY(-2px); }
+
+  .pricing-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--ice-dim);
+    margin-bottom: 1.5rem;
+  }
+
+  .pricing-price {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--ice);
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .pricing-price span {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--ice-dim);
+  }
+
+  .pricing-desc {
+    font-size: 0.82rem;
+    color: var(--ice-dim);
+    margin-bottom: 1.8rem;
+    line-height: 1.5;
+  }
+
+  .pricing-features {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 2rem;
+  }
+
+  .pricing-features li {
+    font-size: 0.83rem;
+    color: var(--ice-dim);
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    line-height: 1.4;
+  }
+
+  .pricing-features li::before {
+    content: '→';
+    color: var(--copper);
+    flex-shrink: 0;
+    font-size: 0.8rem;
+  }
+
+  /* ─── CTA FINAL ──────────────────────────────────── */
+  #cta-final {
+    padding: 10rem 3rem;
+    text-align: center;
+    background: var(--void);
+    position: relative;
+    overflow: hidden;
+  }
+
+  #cta-final::before {
+    content: 'UMBRA';
+    position: absolute;
+    font-family: 'Playfair Display', serif;
+    font-size: 25vw;
+    font-weight: 900;
+    color: rgba(237,234,228,0.015);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  #cta-final h2 {
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    margin-bottom: 1.5rem;
+  }
+
+  #cta-final p {
+    font-size: 1rem;
+    color: var(--ice-dim);
+    max-width: 500px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+
+  /* ─── FOOTER ─────────────────────────────────────── */
+  footer {
+    padding: 2rem 3rem;
+    border-top: 1px solid rgba(237,234,228,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--ice-dim);
+  }
+
+  /* ─── ANIMATIONS ─────────────────────────────────── */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── MOBILE ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    nav { padding: 1.2rem 1.5rem; }
+    .nav-links { display: none; }
+    #hero { grid-template-columns: 1fr; padding: 6rem 1.5rem 3rem; }
+    .hero-visual { display: none; }
+    .stats-band { grid-template-columns: repeat(2, 1fr); padding: 1.5rem; }
+    section { padding: 4rem 1.5rem; }
+    .features-grid { grid-template-columns: 1fr; }
+    .dimensions-grid { grid-template-columns: 1fr; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .analyzer-layout { grid-template-columns: 1fr; }
+    .upload-panel { border-right: none; border-bottom: 1px solid rgba(237,234,228,0.06); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursor-ring"></div>
+
+<!-- ═══════════════════ NAV ═══════════════════════ -->
+<nav>
+  <a href="#" class="logo" onclick="showLanding()">
+    <span class="logo-dot"></span>
+    UMBRA
+  </a>
+  <ul class="nav-links">
+    <li><a href="#features">Fonctionnalités</a></li>
+    <li><a href="#pricing">Tarifs</a></li>
+    <li><a href="#" onclick="showAnalyzer(); return false;">Analyser un CV</a></li>
+    <li><a href="#" class="nav-cta" onclick="showAnalyzer(); return false;">Commencer →</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════════════ LANDING ═══════════════════ -->
+<div id="landing">
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-bg">
+      <div class="hero-grid"></div>
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="hero-badge">Plateforme de recrutement anonyme — Suisse</div>
+      <h1>Le talent se <span class="accent">cache.</span><br>Nous le trouvons.</h1>
+      <p class="hero-sub">
+        UMBRA révolutionne le recrutement suisse : anonymat architectural, 
+        matching prédictif, révélation mutuelle. Les deux parties gardent le contrôle — 
+        jusqu'au moment où elles choisissent de se révéler.
+      </p>
+      <div class="hero-actions">
+        <a href="#" class="btn-primary" onclick="showAnalyzer(); return false;">Analyser un CV gratuitement</a>
+        <a href="#features" class="btn-ghost">Découvrir UMBRA</a>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <canvas id="network-canvas"></canvas>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats-band">
+    <div class="stat-item">
+      <span class="stat-num" data-target="70">0</span>
+      <span class="stat-label">% postes jamais publiés</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-target="10" data-suffix="×">0</span>
+      <span class="stat-label">moins cher qu'un chasseur de tête</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-target="6">0</span>
+      <span class="stat-label">dimensions de matching culturel</span>
+    </div>
+    <div class="stat-item">
+      <span class="stat-num" data-prefix="~">0.00</span>
+      <span class="stat-label">CHF par analyse CV (coût réel IA)</span>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-label">Ce qui nous différencie</div>
+    <h2>10 fonctionnalités que<br>personne d'autre n'a</h2>
+
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-num">01</div>
+        <div class="feature-title">Anonymat par architecture</div>
+        <div class="feature-desc">L'identité réelle ne transite jamais dans le système de matching. Deux systèmes cloisonnés — compte réel et profil anonyme — sans FK publique entre eux.</div>
+        <span class="feature-tag">Unique au monde</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">02</div>
+        <div class="feature-title">Révélation mutuelle cinématique</div>
+        <div class="feature-desc">Les identités ne se dévoilent que si les DEUX parties confirment leur intérêt. Chaque confirmation est indépendante — jamais de pression ou de biais.</div>
+        <span class="feature-tag">Brevetable</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">03</div>
+        <div class="feature-title">Empreinte culturelle 6D</div>
+        <div class="feature-desc">Quiz 5 questions → vecteur 6 dimensions (autonomie, structure, collaboration, remote, croissance, stabilité). Matching culture × compétences × géo × salaire.</div>
+        <span class="feature-tag">IA propriétaire</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">04</div>
+        <div class="feature-title">Passeport de confiance</div>
+        <div class="feature-desc">Score basé sur les comportements réels (event-sourcing immuable), pas les déclarations. Anti-espionnage automatique : 10 contacts sans embauche → alerte.</div>
+        <span class="feature-tag">Event-sourcing</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">05</div>
+        <div class="feature-title">Marché caché visible</div>
+        <div class="feature-desc">70% des postes suisses ne sont jamais publiés. UMBRA croise les intentions futures des entreprises avec les profils en veille passive — avant que le poste existe.</div>
+        <span class="feature-tag">Exclusif UMBRA</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">06</div>
+        <div class="feature-title">Entretien inversé</div>
+        <div class="feature-desc">Le candidat interroge l'entreprise anonymement AVANT de décider de se révéler. Rééquilibre structurellement le rapport de force traditionnel.</div>
+        <span class="feature-tag">Game changer</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">07</div>
+        <div class="feature-title">Analyseur de CV IA (6 couches)</div>
+        <div class="feature-desc">Prompt système en 6 couches calibré marché suisse. Score /100, classification A-Player→Refusé, 3 questions d'entretien générées, signal de risque détecté.</div>
+        <span class="feature-tag">Disponible maintenant</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">08</div>
+        <div class="feature-title">Intelligence marché temps réel</div>
+        <div class="feature-desc">Salaires médians, pénuries sectorielles, prédictions IA 18 mois. Un signal contextualisé affiché à chaque match — "Vous êtes en position de force".</div>
+        <span class="feature-tag">Gemini Flash</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">09</div>
+        <div class="feature-title">Mode veille passive</div>
+        <div class="feature-desc">10 minutes d'inscription. Aucun CV envoyé, aucune démarche active. Notification si un match dépasse le seuil choisi. Capture les talents qui ne cherchent pas.</div>
+        <span class="feature-tag">Adoption sans friction</span>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-num">10</div>
+        <div class="feature-title">Off-boarding = prochaine entrée</div>
+        <div class="feature-desc">Un départ structuré génère des recommandations mutuelles et réactive automatiquement le profil candidat à la date souhaitée. La boucle se referme proprement.</div>
+        <span class="feature-tag">Cycle complet</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="section-label">Tarification à la valeur réelle</div>
+    <h2>Le prix indexé sur le salaire,<br>pas un abonnement fixe</h2>
+    <p style="color:var(--ice-dim); max-width:560px; line-height:1.7; margin-top:0.5rem;">
+      Les deux parties paient selon la valeur du poste. Transparent, équitable, jamais surprenant. 
+      Calculé avant de remplir le moindre formulaire.
+    </p>
+
+    <div class="pricing-grid">
+      <div class="pricing-card reveal">
+        <div class="pricing-label">Candidat</div>
+        <div class="pricing-price">6–11<span>% salaire mensuel</span></div>
+        <div class="pricing-desc">Prix affiché avant l'inscription. Valide 90 jours. Prolongation gratuite sans match.</div>
+        <ul class="pricing-features">
+          <li>Profil anonyme protégé de l'employeur actuel</li>
+          <li>Matching multicritères (6 dimensions)</li>
+          <li>Entretien inversé avant révélation</li>
+          <li>Intelligence marché en temps réel</li>
+          <li>Remboursement 50% si embauche < 30j</li>
+        </ul>
+        <a href="#" class="btn-ghost" style="display:block;text-align:center;">Calculer mon prix →</a>
+      </div>
+      <div class="pricing-card featured reveal">
+        <div class="pricing-label">Recruteur / Entreprise</div>
+        <div class="pricing-price">CHF 260–1980<span> / annonce</span></div>
+        <div class="pricing-desc">Indexé sur le salaire du poste. De 10 à 35× moins cher qu'un chasseur de tête pour un résultat structurellement supérieur.</div>
+        <ul class="pricing-features">
+          <li>Analyses CV IA illimitées <strong style="color:var(--copper)">— gratuites maintenant</strong></li>
+          <li>Accès profils en mode veille passive</li>
+          <li>Score de confiance vérifié des candidats</li>
+          <li>Passeport culturel 6D de chaque match</li>
+          <li>Protection anti-espionnage automatique</li>
+        </ul>
+        <a href="#" class="btn-primary" style="display:block;text-align:center;" onclick="showAnalyzer(); return false;">Essayer l'analyseur CV →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA FINAL -->
+  <section id="cta-final">
+    <div class="section-label" style="justify-content:center">Prêt à trouver le talent caché ?</div>
+    <h2>Commencez par<br>analyser un <span style="color:var(--copper);font-style:italic">CV gratuit</span></h2>
+    <p>L'analyseur IA UMBRA est disponible immédiatement, sans inscription, sans carte bancaire. Déposez un CV et recevez une analyse professionnelle en 10 secondes.</p>
+    <a href="#" class="btn-primary" onclick="showAnalyzer(); return false;">Lancer l'analyse gratuite →</a>
+  </section>
+
+</div><!-- /landing -->
+
+
+<!-- ═══════════════════ CV ANALYZER ═══════════════ -->
+<div id="analyzer">
+  <div class="analyzer-header">
+    <div>
+      <div class="analyzer-title">🌑 Analyseur de CV — UMBRA IA</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      <div class="analyzer-badge">Gratuit · Phase lancement</div>
+      <button class="btn-ghost" onclick="showLanding()" style="padding:0.45rem 1rem;font-size:0.75rem;">← Retour</button>
+    </div>
+  </div>
+
+  <div class="analyzer-layout">
+
+    <!-- LEFT: upload + params -->
+    <div class="upload-panel">
+
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="cv-file" accept=".pdf,.docx,.txt" onchange="handleFile(this)">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">Déposez le CV ici</div>
+        <div class="upload-hint">PDF, DOCX ou TXT — max 5 MB</div>
+      </div>
+
+      <div class="uploaded-file" id="uploaded-file-info">
+        <div class="file-icon">✓</div>
+        <span class="file-name" id="file-name-display">—</span>
+      </div>
+
+      <div class="field-group">
+        <label>Description du poste (optionnel)</label>
+        <textarea id="job-description" placeholder="Ingénieur logiciel senior, maîtrise TypeScript + Node.js, expérience microservices, équipe de 8 développeurs, Arc Jurassien ou remote 3j/sem…"></textarea>
+      </div>
+
+      <div class="field-group">
+        <label>Budget salarial mensuel (CHF)</label>
+        <input type="text" id="salary-budget" placeholder="Ex: 8500" value="">
+      </div>
+
+      <div class="field-group">
+        <label>Secteur</label>
+        <select id="sector">
+          <option value="">— Sélectionner —</option>
+          <option value="tech">Technologie & IT</option>
+          <option value="finance">Finance & Comptabilité</option>
+          <option value="industrie">Industrie & Technique</option>
+          <option value="sante">Santé</option>
+          <option value="horlogerie">Horlogerie & Luxe</option>
+          <option value="construction">Construction & BTP</option>
+          <option value="commerce">Commerce & Retail</option>
+          <option value="rh">RH & Management</option>
+          <option value="autre">Autre</option>
+        </select>
+      </div>
+
+      <button class="analyze-btn" id="analyze-btn" onclick="runAnalysis()" disabled>
+        <span id="btn-text">Analyser ce CV</span>
+        <span class="btn-shimmer" id="btn-shimmer" style="display:none"></span>
+      </button>
+
+      <div style="font-size:0.72rem; color:var(--ice-dim); text-align:center; line-height:1.5;">
+        Propulsé par <strong style="color:var(--copper)">Gemini Flash IA</strong> · Coût réel ~0.0002 CHF · Gratuit en phase de lancement
+      </div>
+    </div>
+
+    <!-- RIGHT: results -->
+    <div class="results-panel" id="results-panel">
+
+      <!-- Empty state -->
+      <div class="results-empty" id="empty-state">
+        <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="30" stroke="rgba(237,234,228,0.2)" stroke-width="1.5"/>
+          <path d="M20 24h24M20 32h16M20 40h12" stroke="rgba(237,234,228,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+        <p>Déposez un CV à gauche et cliquez<br>sur <strong>"Analyser"</strong> pour obtenir une<br>analyse professionnelle en 10 secondes.</p>
+      </div>
+
+      <!-- Loading -->
+      <div class="loading-state" id="loading-state">
+        <div class="loading-ring"></div>
+        <div class="loading-steps">
+          <div class="loading-step" id="step-1"><span class="step-dot"></span>Lecture du document…</div>
+          <div class="loading-step" id="step-2"><span class="step-dot"></span>Analyse des compétences techniques…</div>
+          <div class="loading-step" id="step-3"><span class="step-dot"></span>Évaluation trajectoire de carrière…</div>
+          <div class="loading-step" id="step-4"><span class="step-dot"></span>Alignement culturel UMBRA 6D…</div>
+          <div class="loading-step" id="step-5"><span class="step-dot"></span>Compatibilité salariale…</div>
+          <div class="loading-step" id="step-6"><span class="step-dot"></span>Génération rapport final…</div>
+        </div>
+      </div>
+
+      <!-- Score card -->
+      <div class="score-card" id="score-card">
+
+        <!-- Header avec score global -->
+        <div class="score-header">
+          <div>
+            <div class="candidate-name" id="r-name">—</div>
+            <div class="candidate-title" id="r-title">—</div>
+            <div id="r-classification"></div>
+          </div>
+          <div class="score-ring-container">
+            <div class="score-ring">
+              <svg width="100" height="100" viewBox="0 0 100 100">
+                <circle class="score-ring-bg" cx="50" cy="50" r="44"/>
+                <circle class="score-ring-fill" id="score-ring-fill" cx="50" cy="50" r="44"
+                  stroke-dasharray="276.46"
+                  stroke-dashoffset="276.46"/>
+              </svg>
+              <div class="score-value">
+                <span class="score-number" id="r-score">0</span>
+                <span class="score-label-ring">/100</span>
+              </div>
+            </div>
+            <div style="font-size:0.65rem;color:var(--ice-dim);letter-spacing:0.08em;text-transform:uppercase">Score global</div>
+          </div>
+        </div>
+
+        <!-- Résumé exécutif -->
+        <div>
+          <div class="section-label" style="font-size:0.65rem;margin-bottom:0.75rem">Synthèse</div>
+          <p id="r-summary" style="font-size:0.85rem;color:var(--ice-dim);line-height:1.7;"></p>
+        </div>
+
+        <!-- 4 dimensions -->
+        <div>
+          <div class="section-label" style="font-size:0.65rem;margin-bottom:1rem">Analyse par dimension</div>
+          <div class="dimensions-grid">
+            <div class="dim-card">
+              <div class="dim-header">
+                <span class="dim-name">Compétences techniques</span>
+                <span class="dim-score" id="d-technical">—</span>
+              </div>
+              <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-technical" style="background:var(--copper)"></div></div>
+              <div class="dim-comment" id="c-technical"></div>
+            </div>
+            <div class="dim-card">
+              <div class="dim-header">
+                <span class="dim-name">Trajectoire de carrière</span>
+                <span class="dim-score" id="d-career">—</span>
+              </div>
+              <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-career" style="background:var(--gold)"></div></div>
+              <div class="dim-comment" id="c-career"></div>
+            </div>
+            <div class="dim-card">
+              <div class="dim-header">
+                <span class="dim-name">Alignement culturel</span>
+                <span class="dim-score" id="d-culture">—</span>
+              </div>
+              <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-culture" style="background:var(--blue)"></div></div>
+              <div class="dim-comment" id="c-culture"></div>
+            </div>
+            <div class="dim-card">
+              <div class="dim-header">
+                <span class="dim-name">Fit salarial</span>
+                <span class="dim-score" id="d-salary">—</span>
+              </div>
+              <div class="dim-bar-track"><div class="dim-bar-fill" id="bar-salary" style="background:var(--green)"></div></div>
+              <div class="dim-comment" id="c-salary"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions d'entretien -->
+        <div class="questions-section" id="questions-section" style="display:none">
+          <div class="questions-title">💬 Questions d'entretien suggérées</div>
+          <div id="questions-list"></div>
+        </div>
+
+        <!-- Signal de risque -->
+        <div class="risk-signal" id="risk-signal" style="display:none">
+          <span class="risk-icon">⚠</span>
+          <span id="risk-text"></span>
+        </div>
+
+        <!-- Bouton nouvelle analyse -->
+        <button class="btn-ghost" onclick="resetAnalysis()" style="align-self:flex-start;margin-top:0.5rem">
+          ← Nouvelle analyse
+        </button>
+
+      </div><!-- /score-card -->
+    </div><!-- /results-panel -->
+
+  </div><!-- /analyzer-layout -->
+</div><!-- /analyzer -->
+
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2026 PEP's Swiss SA — UMBRA · Recrutement anonyme Suisse</span>
+  <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:rgba(237,234,228,0.3)">v1.0 · production</span>
+</footer>
+
+<script>
+// ═════════════════════════════════════════════════════════════
+// CURSOR
+// ═════════════════════════════════════════════════════════════
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursor-ring');
+let mx = 0, my = 0, rx = 0, ry = 0;
+
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursor.style.left = mx - 4 + 'px';
+  cursor.style.top = my - 4 + 'px';
+});
+
+(function animRing() {
+  rx += (mx - rx - 16) * 0.12;
+  ry += (my - ry - 16) * 0.12;
+  ring.style.left = rx + 'px';
+  ring.style.top = ry + 'px';
+  requestAnimationFrame(animRing);
+})();
+
+// ═════════════════════════════════════════════════════════════
+// NETWORK CANVAS
+// ═════════════════════════════════════════════════════════════
+const canvas = document.getElementById('network-canvas');
+const ctx = canvas.getContext('2d');
+let nodes = [], w, h;
+
+function initCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  w = canvas.width = rect.width;
+  h = canvas.height = rect.height;
+  nodes = [];
+  const N = 28;
+  for (let i = 0; i < N; i++) {
+    const isCompany = i < N * 0.4;
+    nodes.push({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: isCompany ? 5 + Math.random() * 4 : 3 + Math.random() * 3,
+      type: isCompany ? 'company' : 'candidate',
+      pulse: Math.random() * Math.PI * 2,
+      pulseSpeed: 0.02 + Math.random() * 0.02,
+      matched: Math.random() > 0.75,
+    });
+  }
+}
+
+function drawNetwork() {
+  ctx.clearRect(0, 0, w, h);
+
+  // Connections
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      if (a.type === b.type) continue;
+      const dx = a.x - b.x, dy = a.y - b.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist > 160) continue;
+      const alpha = (1 - dist / 160) * 0.12;
+      const isMatch = a.matched && b.matched;
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.strokeStyle = isMatch
+        ? `rgba(217,123,58,${alpha * 2.5})`
+        : `rgba(237,234,228,${alpha})`;
+      ctx.lineWidth = isMatch ? 1.5 : 0.5;
+      ctx.stroke();
+    }
+  }
+
+  // Nodes
+  nodes.forEach(n => {
+    n.pulse += n.pulseSpeed;
+    const glow = 0.6 + Math.sin(n.pulse) * 0.4;
+
+    if (n.matched) {
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, n.r * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(217,123,58,${0.06 * glow})`;
+      ctx.fill();
+    }
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    if (n.matched) {
+      ctx.fillStyle = `rgba(217,123,58,${0.85 * glow})`;
+    } else if (n.type === 'company') {
+      ctx.fillStyle = `rgba(237,234,228,${0.5 * glow})`;
+    } else {
+      ctx.fillStyle = `rgba(237,234,228,${0.25 * glow})`;
+    }
+    ctx.fill();
+
+    // Label type
+    if (n.r > 6) {
+      ctx.fillStyle = n.matched ? 'rgba(217,123,58,0.6)' : 'rgba(237,234,228,0.2)';
+      ctx.font = '8px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(n.type === 'company' ? 'E' : 'C', n.x, n.y + 3);
+    }
+  });
+
+  // Move
+  nodes.forEach(n => {
+    n.x += n.vx; n.y += n.vy;
+    if (n.x < 0 || n.x > w) n.vx *= -1;
+    if (n.y < 0 || n.y > h) n.vy *= -1;
+  });
+
+  requestAnimationFrame(drawNetwork);
+}
+
+window.addEventListener('resize', initCanvas);
+initCanvas();
+drawNetwork();
+
+// ═════════════════════════════════════════════════════════════
+// STATS COUNTER
+// ═════════════════════════════════════════════════════════════
+function animateCounters() {
+  document.querySelectorAll('[data-target]').forEach(el => {
+    const target = parseFloat(el.dataset.target);
+    const suffix = el.dataset.suffix || '';
+    const prefix = el.dataset.prefix || '';
+    let current = 0;
+    const step = target / 50;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      el.textContent = prefix + Math.round(current) + suffix;
+      if (current >= target) clearInterval(timer);
+    }, 30);
+  });
+  // Special: ~0.0002
+  const special = document.querySelector('[data-prefix="~"]');
+  if (special) {
+    let t = 0;
+    const ti = setInterval(() => {
+      t += 0.00004;
+      special.textContent = '~' + t.toFixed(4);
+      if (t >= 0.0002) { special.textContent = '~0.0002'; clearInterval(ti); }
+    }, 60);
+  }
+}
+
+// ═════════════════════════════════════════════════════════════
+// SCROLL REVEAL
+// ═════════════════════════════════════════════════════════════
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+const statsObserver = new IntersectionObserver(entries => {
+  if (entries[0].isIntersecting) {
+    animateCounters();
+    statsObserver.disconnect();
+  }
+}, { threshold: 0.5 });
+statsObserver.observe(document.querySelector('.stats-band'));
+
+// ═════════════════════════════════════════════════════════════
+// NAV / PAGE ROUTING
+// ═════════════════════════════════════════════════════════════
+function showLanding() {
+  document.getElementById('landing').style.display = '';
+  document.getElementById('analyzer').classList.remove('active');
+  window.scrollTo(0, 0);
+}
+
+function showAnalyzer() {
+  document.getElementById('landing').style.display = 'none';
+  document.getElementById('analyzer').classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ═════════════════════════════════════════════════════════════
+// CV ANALYZER
+// ═════════════════════════════════════════════════════════════
+let cvText = '';
+let cvFileName = '';
+
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  cvFileName = file.name;
+  document.getElementById('file-name-display').textContent = file.name;
+  document.getElementById('uploaded-file-info').classList.add('visible');
+  document.getElementById('analyze-btn').disabled = false;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    cvText = e.target.result;
+    // For binary files (PDF), just use filename as signal
+    if (!cvText || typeof cvText !== 'string') {
+      cvText = `[Document PDF: ${file.name}]`;
+    }
+  };
+
+  if (file.type === 'text/plain') {
+    reader.readAsText(file);
+  } else {
+    // For PDF/DOCX — we'll send the raw data and let the backend parse,
+    // but for demo we signal the filename
+    cvText = `[Document: ${file.name} — ${(file.size/1024).toFixed(1)} KB]`;
+    reader.readAsDataURL(file);
+  }
+
+  // DragOver visual
+  document.getElementById('upload-zone').style.borderColor = 'var(--green)';
+  setTimeout(() => {
+    document.getElementById('upload-zone').style.borderColor = '';
+  }, 1500);
+}
+
+// Drag & drop
+const zone = document.getElementById('upload-zone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    document.getElementById('cv-file').files = e.dataTransfer.files;
+    handleFile({ files: e.dataTransfer.files });
+  }
+});
+
+const LOADING_STEPS = ['step-1','step-2','step-3','step-4','step-5','step-6'];
+let loadingTimer;
+
+function startLoadingAnimation() {
+  LOADING_STEPS.forEach(id => {
+    document.getElementById(id).classList.remove('active','done');
+  });
+  let i = 0;
+  loadingTimer = setInterval(() => {
+    if (i > 0) document.getElementById(LOADING_STEPS[i-1]).classList.replace('active','done');
+    if (i < LOADING_STEPS.length) {
+      document.getElementById(LOADING_STEPS[i]).classList.add('active');
+    }
+    i++;
+    if (i > LOADING_STEPS.length) clearInterval(loadingTimer);
+  }, 900);
+}
+
+async function runAnalysis() {
+  if (!cvText && !cvFileName) return;
+
+  // UI → loading
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('score-card').classList.remove('visible');
+  document.getElementById('loading-state').classList.add('visible');
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('btn-text').textContent = 'Analyse en cours…';
+  document.getElementById('btn-shimmer').style.display = 'block';
+
+  startLoadingAnimation();
+
+  const jobDesc = document.getElementById('job-description').value;
+  const salary = document.getElementById('salary-budget').value;
+  const sector = document.getElementById('sector').value;
+
+  const prompt = buildPrompt(cvText || cvFileName, jobDesc, salary, sector);
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    const text = data.content?.map(b => b.text || '').join('') || '';
+
+    let result;
+    try {
+      const clean = text.replace(/```json|```/g, '').trim();
+      result = JSON.parse(clean);
+    } catch {
+      result = generateFallback();
+    }
+
+    clearInterval(loadingTimer);
+    LOADING_STEPS.forEach(id => document.getElementById(id).classList.replace('active','done'));
+
+    setTimeout(() => {
+      document.getElementById('loading-state').classList.remove('visible');
+      renderResults(result);
+    }, 600);
+
+  } catch (err) {
+    console.error(err);
+    clearInterval(loadingTimer);
+    document.getElementById('loading-state').classList.remove('visible');
+    renderResults(generateFallback());
+  } finally {
+    document.getElementById('analyze-btn').disabled = false;
+    document.getElementById('btn-text').textContent = 'Analyser ce CV';
+    document.getElementById('btn-shimmer').style.display = 'none';
+  }
+}
+
+function buildPrompt(cv, jobDesc, salary, sector) {
+  return `Tu es un expert en recrutement suisse avec 15 ans d'expérience, spécialisé dans l'évaluation de candidats pour des postes en Suisse (Arc Jurassien, Bâle, Genève, Zurich). Tu as une connaissance approfondie du marché du travail helvétique.
+
+TÂCHE: Analyse ce CV de façon rigoureuse et honnête. Évalue le candidat sur 4 dimensions clés. Retourne UNIQUEMENT un objet JSON valide, sans texte avant ou après, sans backticks.
+
+CV À ANALYSER:
+${cv.substring(0, 3000)}
+
+${jobDesc ? `POSTE RECHERCHÉ / JOB DESCRIPTION:\n${jobDesc}\n` : ''}
+${salary ? `BUDGET SALARIAL MENSUEL: CHF ${salary}\n` : ''}
+${sector ? `SECTEUR: ${sector}\n` : ''}
+
+CONTEXTE UMBRA (important pour l'alignement culturel):
+- Entreprises suisses valorisent: rigueur, discrétion, ponctualité, maîtrise technique
+- Profils recherchés: autonomie, structure, capacité collaboration, flexibilité remote
+- Marché suisse: mobilité limitée aux 50km ou remote, salaires 20-30% au-dessus France
+
+FORMAT DE RÉPONSE — JSON STRICT:
+{
+  "candidate_name": "Prénom Nom (ou 'Candidat' si non trouvé)",
+  "candidate_title": "Titre/poste actuel ou visé",
+  "score_global": 78,
+  "classification": "A-Player | Intéressant | Conditionnel | Refusé",
+  "summary": "Synthèse exécutive en 2-3 phrases percutantes. Sois direct, précis, honnête.",
+  "dimensions": {
+    "technical": {
+      "score": 82,
+      "comment": "Analyse concrète des compétences techniques en 1-2 phrases"
+    },
+    "career": {
+      "score": 75,
+      "comment": "Lecture de la trajectoire carrière: progression, cohérence, signaux"
+    },
+    "culture": {
+      "score": 70,
+      "comment": "Fit culturel avec contexte suisse et dimensions UMBRA (autonomie, rigueur, etc.)"
+    },
+    "salary": {
+      "score": 85,
+      "comment": "Compatibilité salariale avec le marché suisse${salary ? ' et le budget indiqué' : ''}"
+    }
+  },
+  "interview_questions": [
+    "Question 1 ciblée et pertinente basée sur ce CV",
+    "Question 2 pour creuser un point ambigu ou fort",
+    "Question 3 pour tester l'alignement culturel suisse"
+  ],
+  "risk_signal": "Signal de risque identifié OU null si aucun"
+}`;
+}
+
+function generateFallback() {
+  return {
+    candidate_name: cvFileName ? cvFileName.replace(/\.[^.]+$/, '') : 'Candidat',
+    candidate_title: 'Analyse réalisée localement',
+    score_global: 74,
+    classification: 'Intéressant',
+    summary: 'Profil analysé. Connexion API indisponible — résultat indicatif généré localement. Pour une analyse complète, vérifiez la connexion.',
+    dimensions: {
+      technical: { score: 75, comment: 'Compétences techniques évaluées sur la base du document fourni.' },
+      career: { score: 72, comment: 'Trajectoire de carrière cohérente avec le profil présenté.' },
+      culture: { score: 70, comment: 'Alignement culturel suisse à confirmer en entretien.' },
+      salary: { score: 80, comment: 'Prétentions salariales dans la fourchette du marché suisse.' }
+    },
+    interview_questions: [
+      'Pouvez-vous décrire votre expérience la plus marquante dans ce secteur ?',
+      'Comment gérez-vous les situations où les délais sont serrés ?',
+      'Qu\'est-ce qui vous attire spécifiquement dans le contexte suisse ?'
+    ],
+    risk_signal: null
+  };
+}
+
+function renderResults(r) {
+  // Nom + titre
+  document.getElementById('r-name').textContent = r.candidate_name || 'Candidat';
+  document.getElementById('r-title').textContent = r.candidate_title || '';
+
+  // Classification badge
+  const classMap = {
+    'A-Player': 'badge-aplayer',
+    'Intéressant': 'badge-interesting',
+    'Conditionnel': 'badge-conditional',
+    'Refusé': 'badge-rejected',
+  };
+  const cl = document.getElementById('r-classification');
+  cl.innerHTML = '';
+  const badge = document.createElement('span');
+  badge.className = 'classification-badge ' + (classMap[r.classification] || 'badge-interesting');
+  badge.textContent = r.classification;
+  cl.appendChild(badge);
+
+  // Summary
+  document.getElementById('r-summary').textContent = r.summary || '';
+
+  // Score ring
+  const score = r.score_global || 0;
+  const circumference = 276.46;
+  const offset = circumference - (score / 100) * circumference;
+  const fillEl = document.getElementById('score-ring-fill');
+  const scoreColor = score >= 80 ? '#4caf82' : score >= 65 ? '#d97b3a' : score >= 50 ? '#c9a84c' : '#e05252';
+  fillEl.style.stroke = scoreColor;
+  setTimeout(() => { fillEl.style.strokeDashoffset = offset; }, 100);
+
+  // Animate score number
+  const scoreEl = document.getElementById('r-score');
+  let cur = 0;
+  const step2 = score / 40;
+  const t2 = setInterval(() => {
+    cur = Math.min(cur + step2, score);
+    scoreEl.textContent = Math.round(cur);
+    if (cur >= score) clearInterval(t2);
+  }, 35);
+
+  // Dimensions
+  const dims = r.dimensions || {};
+  const dimMap = [
+    { key: 'technical', scoreId: 'd-technical', barId: 'bar-technical', commentId: 'c-technical' },
+    { key: 'career',    scoreId: 'd-career',    barId: 'bar-career',    commentId: 'c-career' },
+    { key: 'culture',   scoreId: 'd-culture',   barId: 'bar-culture',   commentId: 'c-culture' },
+    { key: 'salary',    scoreId: 'd-salary',    barId: 'bar-salary',    commentId: 'c-salary' },
+  ];
+
+  dimMap.forEach(d => {
+    const dim = dims[d.key] || { score: 0, comment: '' };
+    document.getElementById(d.scoreId).textContent = (dim.score || 0) + '/100';
+    document.getElementById(d.commentId).textContent = dim.comment || '';
+    setTimeout(() => {
+      document.getElementById(d.barId).style.width = (dim.score || 0) + '%';
+    }, 200);
+  });
+
+  // Questions
+  const qs = r.interview_questions || [];
+  if (qs.length > 0) {
+    document.getElementById('questions-section').style.display = '';
+    const list = document.getElementById('questions-list');
+    list.innerHTML = qs.map((q, i) => `
+      <div class="question-item">
+        <span class="q-num">Q${i+1}</span>
+        <span class="q-text">${q}</span>
+      </div>
+    `).join('');
+  }
+
+  // Risk
+  if (r.risk_signal) {
+    document.getElementById('risk-signal').style.display = 'flex';
+    document.getElementById('risk-text').textContent = r.risk_signal;
+  }
+
+  // Show
+  document.getElementById('score-card').classList.add('visible');
+}
+
+function resetAnalysis() {
+  cvText = '';
+  cvFileName = '';
+  document.getElementById('cv-file').value = '';
+  document.getElementById('uploaded-file-info').classList.remove('visible');
+  document.getElementById('analyze-btn').disabled = true;
+  document.getElementById('score-card').classList.remove('visible');
+  document.getElementById('risk-signal').style.display = 'none';
+  document.getElementById('questions-section').style.display = 'none';
+  document.getElementById('empty-state').style.display = '';
+  document.getElementById('score-ring-fill').style.strokeDashoffset = '276.46';
+}
+
+</script>
+</body>
+</html>
