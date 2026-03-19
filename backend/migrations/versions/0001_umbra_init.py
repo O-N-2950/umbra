@@ -21,7 +21,7 @@ from sqlalchemy.dialects import postgresql
 # ── REVISION ──────────────────────────────────────────────────────────────────
 
 revision = "0001_umbra_init"
-down_revision = "001_initial"
+down_revision = None
 branch_labels = None
 depends_on = None
 
