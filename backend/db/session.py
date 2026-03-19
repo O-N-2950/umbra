@@ -1,7 +1,6 @@
 """
 UMBRA — Database Session
 Pool de connexions PostgreSQL synchrone (SQLAlchemy).
-Async via asyncpg pour les routes haute performance (à venir).
 
 Configuration :
   DATABASE_URL=postgresql://user:pass@host/umbra
@@ -14,16 +13,13 @@ import os
 import logging
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import QueuePool
+from sqlalchemy.pool import QueuePool, StaticPool
 
 logger = logging.getLogger("umbra.db")
 
 # ── CONFIG ────────────────────────────────────────────────────────────────────
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "sqlite+aiosqlite:///matcho_dev.db"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///umbra_dev.db")
 
 # Railway injecte postgres:// mais SQLAlchemy 2.x veut postgresql://
 if DATABASE_URL.startswith("postgres://"):
@@ -31,15 +27,29 @@ if DATABASE_URL.startswith("postgres://"):
 
 # ── ENGINE ────────────────────────────────────────────────────────────────────
 
-engine = create_engine(
-    DATABASE_URL,
-    poolclass=QueuePool,
-    pool_size=10,           # connexions simultanées
-    max_overflow=20,        # burst au-delà du pool
-    pool_pre_ping=True,     # vérif connexion avant usage (Railway ↔ PostgreSQL)
-    pool_recycle=3600,      # recycle après 1h (évite connexions mortes)
-    echo=os.getenv("SQL_ECHO", "false").lower() == "true",
-)
+_is_sqlite = DATABASE_URL.startswith("sqlite")
+
+if _is_sqlite:
+    # SQLite : StaticPool pour éviter les erreurs de thread
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=StaticPool,
+        connect_args={"check_same_thread": False},
+        echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    )
+else:
+    # PostgreSQL : QueuePool standard
+    engine = create_engine(
+        DATABASE_URL,
+        poolclass=QueuePool,
+        pool_size=10,
+        max_overflow=20,
+        pool_pre_ping=True,     # vérif connexion avant usage
+        pool_recycle=3600,      # recycle après 1h
+        echo=os.getenv("SQL_ECHO", "false").lower() == "true",
+    )
+
+logger.info("DB engine: %s", "SQLite" if _is_sqlite else "PostgreSQL")
 
 # ── SESSION ───────────────────────────────────────────────────────────────────
 
@@ -47,7 +57,7 @@ SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
     autoflush=False,
-    expire_on_commit=False,   # évite les lazy-load après commit
+    expire_on_commit=False,
 )
 
 
@@ -89,8 +99,5 @@ def create_all_tables():
     À utiliser en dev uniquement — en prod, utiliser Alembic.
     """
     from .umbra_models import Base as UmbraBase
-    from .models import Base as MatchoBase
-
     UmbraBase.metadata.create_all(bind=engine)
-    MatchoBase.metadata.create_all(bind=engine)
-    logger.info("all tables created")
+    logger.info("UMBRA tables created")
