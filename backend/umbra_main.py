@@ -189,10 +189,8 @@ def health():
 
     # DB
     try:
-        from db.session import SessionLocal
-        with SessionLocal() as db:
-            db.execute("SELECT 1")
-        checks["database"] = "ok"
+        from db.session import ping_db
+        checks["database"] = "ok" if ping_db() else "error: ping failed"
     except Exception as e:
         checks["database"] = f"error: {e}"
 
