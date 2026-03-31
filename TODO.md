@@ -1,106 +1,49 @@
-# UMBRA — TODO List
-
-> Dernière mise à jour : 2026-02-27 — Session 2 complète
-
----
+# UMBRA — TODO
+> Mise à jour : 31/03/2026 — Session 7 (Analytics)
 
 ## ✅ FAIT
 
-- [x] Concept et vision produit complets (10 game changers)
-- [x] Prototype React complet `umbra-final.jsx` — 9 écrans fonctionnels
-- [x] Design system UMBRA (palette, typo, composants, animations)
-- [x] Canvas réseau animé, Quiz culturel 5Q, Radar 6D, Révélation cinématique
-- [x] `backend/db/umbra_models.py` — 17 tables PostgreSQL
-- [x] `backend/services/matching_engine.py` — Algorithme multicritères (5 dimensions pondérées)
-- [x] `backend/services/trust_service.py` — Event-sourcing + anti-espionnage automatique
-- [x] `backend/db/seed_data.py` — 9 secteurs + ~100 compétences + zones postales CH
-- [x] `backend/api/umbra_auth.py` — Magic link + JWT (access + refresh)
-- [x] `backend/api/umbra_profiles.py` — CRUD profil + quiz culturel + compétences
-- [x] `backend/api/umbra_matches.py` — Matching + signaux + entretien inversé
-- [x] `backend/api/umbra_trust.py` — Passeport + crédits + webhooks Stripe
-- [x] `backend/umbra_main.py` — FastAPI app avec tous les routers
-- [x] `backend/services/geo_service.py` — 50+ zones postales CH + Haversine + jitter anonymisation
-- [x] `backend/db/session.py` — Pool connexions PostgreSQL (QueuePool)
-- [x] `backend/migrations/versions/0001_umbra_init.py` — Migration Alembic complète
-- [x] `backend/requirements.txt` — Stripe, JWT, Resend, Gemini, PostGIS optionnel
-- [x] CONTEXT.md + TODO.md GitHub à jour
+- [x] `/api/umbra/cv-analyze` — 100% opérationnel en production
+- [x] `/api/umbra/cv-pricing` — modèle free_launch
+- [x] `/api/umbra/cv-debug` — debug Gemini raw
+- [x] Sentry backend Python — `monitoring/analytics.py`
+- [x] PostHog proxy server-side — `/api/v1/analytics/track`
+- [x] GA4 + Sentry browser injectés dans landing page
+- [x] Hook TypeScript `useAnalytics()` — `client/src/lib/analytics.ts`
+- [x] 8 events UMBRA définis (candidat + employeur)
+- [x] `DEPLOY_CHECKLIST.md` créée avec checklist sécurité
+- [x] Variables Railway: SENTRY_DSN, POSTHOG_API_KEY, GA4_MEASUREMENT_ID
+- [x] main → master synchro (deploy Railway sur bonne branche)
+- [x] /ping healthcheck rapide (Railway ne surchage plus Gemini)
+- [x] JWT_SECRET + ENCRYPTION_KEY injectées Railway
 
----
+## 🔴 P0 — À faire maintenant
 
-## 🔴 PRIORITÉ 1 — Wiring & Tests (prochaine session)
+- [ ] **Remplir sur Railway**: SENTRY_DSN, POSTHOG_API_KEY, GA4_MEASUREMENT_ID
+- [ ] Vérifier `/api/v1/analytics/events` → `posthog_active: true`
+- [ ] Tables DB manquantes: alembic stamp head + migration (fiduciaries, clients...)
+- [ ] `matcho-production.up.railway.app` — 502 résiduel → vérifier routage Railway
 
-### Wiring FastAPI (dépendances injectées)
-- [ ] Connecter `get_db` + `get_current_account` dans tous les routers (remplacer `lambda: None`)
-- [ ] Créer `backend/api/umbra_credits.py` — router crédits séparé (importé par main)
-- [ ] Tester le flow complet : register → verify → profile → quiz → match → signal → reveal
+## 🟠 P1 — Cette semaine
 
-### Tests unitaires
-- [ ] `test_matching_engine.py` — cas nominaux + disqualifications + shadow threshold
-- [ ] `test_trust_service.py` — event-sourcing + anti-espionnage + suspension auto
-- [ ] `test_auth.py` — magic token flow + JWT + expiration
-- [ ] `test_geo_service.py` — résolution codes postaux + distances + jitter anonymisation
-- [ ] `test_culture_quiz.py` — vecteurs 6D + labels calculés
+- [ ] Déclencher events PostHog dans les routes auth/stripe/matching
+- [ ] Dashboard recruteur (interface historique analyses CV)
+- [ ] Export PDF résultat analyse CV
+- [ ] Améliorer prompt CV: 5→15 exemples few-shot terrain suisse
+- [ ] Injecter vecteur culturel 6D si candidat vient du réseau UMBRA
 
-### Railway déploiement
-- [ ] Variables d'environnement Railway : DATABASE_URL, JWT_SECRET, STRIPE_*, RESEND_API_KEY, GEMINI_API_KEY, APP_URL, ENV
-- [ ] Dockerfile — adapter pour UMBRA (copier pattern NEO)
-- [ ] Health check Railway — `/health` comme probe
-- [ ] Alembic — tester migration sur DB Railway fraîche
+## 🟡 P2 — Roadmap
 
----
+- [ ] Activer FLAG_FACTURATION après 10 embauches documentées
+- [ ] Quiz culturel 6D intégré au flow candidat
+- [ ] Générateur CV IA (Gemini Flash + PDF template)
+- [ ] Stripe billing actif (annonces à la valeur)
 
-## 🟠 PRIORITÉ 2 — Frontend Next.js (semaine 2)
+## 📋 URLs Production
 
-- [ ] Next.js setup — app router, layout, migration depuis prototype JSX
-- [ ] Auth pages — /register, /login, /auth/verify?token=xxx
-- [ ] Onboarding wizard — Mode → Culture Quiz → Profile → Skills
-- [ ] Dashboard candidat — Matchs, profil, empreinte, passeport
-- [ ] Dashboard entreprise — Matchs, crédits, passeport
-- [ ] Match detail — Radar, entretien inversé, signal, révélation
-- [ ] Canal post-révélation — messagerie sécurisée
-- [ ] PWA — Service worker, push notifications
-
----
-
-## 🟡 PRIORITÉ 3 — Intelligence & Crons (semaine 3)
-
-- [ ] Cron matching — recalcul quotidien (APScheduler)
-- [ ] Cron anti-espionnage — `check_and_run_suspensions()` toutes les heures
-- [ ] Cron off-boarding — réactivation auto profils à reactivation_date
-- [ ] Pipeline marché — agrégation anonymisée → market_snapshots
-- [ ] Gemini predictions — SalaryBenchmark.ai_prediction_18m_pct
-- [ ] Rapport mensuel — email insights marché (Resend + Jinja2)
-
----
-
-## 🟢 PRIORITÉ 4 — Sécurité & Scale
-
-- [ ] Rate limiting — slowapi sur auth, matching
-- [ ] Redis — migrer magic_store dict → Redis (multi-instance)
-- [ ] AES-256 — chiffrement identity_encrypted dans accounts
-- [ ] RGPD / LPD — droit effacement, export données
-- [ ] PostGIS — activer sur Railway + décommenter geoalchemy2
-
----
-
-## 📐 Architecture (état session 2)
-
-```
-backend/
-├── umbra_main.py            ✅ FastAPI UMBRA
-├── api/
-│   ├── umbra_auth.py        ✅ Magic link + JWT
-│   ├── umbra_profiles.py    ✅ Profils + quiz + skills
-│   ├── umbra_matches.py     ✅ Matching + signaux + Q&A
-│   └── umbra_trust.py       ✅ Passeport + crédits + Stripe
-├── db/
-│   ├── umbra_models.py      ✅ 17 tables
-│   ├── session.py           ✅ Pool PostgreSQL
-│   └── seed_data.py         ✅ Seed complet
-├── services/
-│   ├── matching_engine.py   ✅ Algorithme 5 dimensions
-│   ├── trust_service.py     ✅ Event-sourcing trust
-│   └── geo_service.py       ✅ Géo + zones CH
-└── migrations/
-    └── 0001_umbra_init.py   ✅ Migration complète
-```
+| | URL |
+|---|---|
+| Backend actif | `https://matcho-api-production.up.railway.app` |
+| CV Analyze | `POST /api/umbra/cv-analyze` |
+| Analytics | `GET /api/v1/analytics/events` |
+| Health | `GET /health` → 100% |
