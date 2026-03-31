@@ -358,3 +358,63 @@ Passer à l'Option 2 — analyses bundlées dans l'annonce UMBRA :
 - DB : MySQL (DATABASE_URL)
 - Deploy : Railway (matcho-production.up.railway.app)
 - Repo : github.com/O-N-2950/matcho
+
+
+---
+
+## 🚀 SESSION 7 — Observabilité complète — 31/03/2026
+
+### ✅ Accompli cette session
+- `/api/umbra/cv-analyze` — 100% opérationnel (testé: Sophie Müller 86/100 A-Player ✅)
+- Sentry backend Python — `monitoring/analytics.py` → `init_sentry()` au boot
+- PostHog events server-side — proxy `/api/v1/analytics/track` (clé jamais exposée)
+- GA4 + Sentry browser — injectés dans `static/index.html` via meta tags
+- Hook TypeScript `useAnalytics()` + `client/src/lib/analytics.ts`
+- 8 events UMBRA définis (`UmbraEvent.LANDING_VUE` → `ABONNEMENT_ACTIVE`)
+- `DEPLOY_CHECKLIST.md` créée (scanner secrets + vérif post-deploy)
+- Variables Railway injectées: `SENTRY_DSN`, `POSTHOG_API_KEY`, `GA4_MEASUREMENT_ID`, `POSTHOG_HOST` (EU)
+- `APP_NAME` corrigé MATCHO→UMBRA sur Railway
+
+### 📋 Variables à remplir (Sentry + PostHog + GA4)
+1. **Sentry** → sentry.io → New Project → Python → copier DSN → Railway `SENTRY_DSN`
+2. **PostHog** → eu.posthog.com → New Project → copier clé `phc_xxx` → Railway `POSTHOG_API_KEY`
+3. **GA4** → analytics.google.com → Créer propriété → `G-XXXXXXXXXX` → Railway `GA4_MEASUREMENT_ID`
+4. Idem `SENTRY_DSN_FRONTEND` pour le browser SDK
+
+### 🔧 Architecture analytics UMBRA
+
+```
+Candidat/Employeur
+      │
+      ▼
+React track() ──────────► POST /api/v1/analytics/track
+                                    │
+                      ┌─────────────┼─────────────┐
+                      ▼             ▼              ▼
+                  PostHog        Sentry         GA4
+               (product)       (errors)      (traffic)
+               eu.posthog.com  sentry.io    analytics.google
+```
+
+### 📊 Events PostHog actifs
+| Event | Déclenché quand |
+|---|---|
+| `landing_vue` | Page UMBRA chargée |
+| `inscription_démarrée` | Clic CTA inscription |
+| `profil_candidat_créé` | Profil candidat sauvegardé |
+| `offre_publiée` | Employeur publie une annonce |
+| `matching_déclenché` | Algorithme matching lancé |
+| `contact_initié` | Signal d'intérêt envoyé |
+| `checkout_lancé` | Flow Stripe démarré |
+| `abonnement_activé` | Paiement Stripe confirmé |
+
+### 🔴 Reste à faire (P0)
+- Remplir les 4 variables analytics sur Railway
+- Vérifier `/api/v1/analytics/events` → `posthog_active: true`
+- Tables DB manquantes (fiduciaries, clients...) → alembic stamp + migration
+
+### 🟠 Reste à faire (P1)
+- Déclencher `inscription_démarrée` dans la route `/api/v1/auth/register`
+- Déclencher `checkout_lancé` dans `umbra_credits.py` route checkout
+- Déclencher `abonnement_activé` dans le webhook Stripe
+- Déclencher `matching_déclenché` dans `umbra_matches.py`
