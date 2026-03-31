@@ -30,6 +30,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 # ══════════════════════════════════════════════════════════════
+# SENTRY — Init au démarrage (avant FastAPI app)
+# ══════════════════════════════════════════════════════════════
+try:
+    from monitoring.analytics import init_sentry
+    init_sentry()
+except Exception as _e:
+    import logging as _log
+    _log.getLogger("umbra").warning("Sentry init skipped: %s", _e)
+
+
+# ══════════════════════════════════════════════════════════════
 # LOGGING
 # ══════════════════════════════════════════════════════════════
 
@@ -158,6 +169,14 @@ app.include_router(trust_router, prefix="/api/v1")
 # Credits
 from api.umbra_credits import router as credits_router
 app.include_router(credits_router, prefix="/api/v1")
+# Analytics (PostHog proxy + events list)
+try:
+    from api.umbra_analytics import router as analytics_router
+    app.include_router(analytics_router, prefix="/api/v1")
+    logger.info("✅ Analytics router chargé")
+except ImportError as e:
+    logger.warning("Analytics router skipped: %s", e)
+
 
 # ── Anciens routers MATCHO (conservés) ────────────────────────
 try:
@@ -171,6 +190,12 @@ except ImportError:
 # ══════════════════════════════════════════════════════════════
 # HEALTH + ROOT
 # ══════════════════════════════════════════════════════════════
+
+@app.get("/ping")
+def ping():
+    """Healthcheck Railway ultra-rapide."""
+    return {"ok": True}
+
 
 @app.get("/")
 def root():
