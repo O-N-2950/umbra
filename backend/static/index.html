@@ -1154,6 +1154,67 @@
     .upload-panel { border-right: none; border-bottom: 1px solid rgba(237,234,228,0.06); }
   }
 </style>
+
+  <!-- ── PostHog Analytics ──────────────────────────────── -->
+  <script>
+    (function() {
+      // Clé injectée par le backend au runtime (pas en dur dans le JS)
+      // L'app utilise /api/v1/analytics/track comme proxy server-side
+      window.UMBRA_CONFIG = {
+        apiBase: '',  // même domaine
+        trackEndpoint: '/api/v1/analytics/track',
+        ga4Id: '%%GA4_MEASUREMENT_ID%%',  // injecté via meta tag côté serveur
+      };
+    })();
+  </script>
+
+  <!-- ── Google Analytics 4 ─────────────────────────────── -->
+  <script>
+    (function() {
+      var GA4_ID = document.querySelector('meta[name="ga4-id"]')?.content || '';
+      if (!GA4_ID || GA4_ID.startsWith('%%')) return;
+      var s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA4_ID;
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      window.gtag = gtag;
+      gtag('js', new Date());
+      gtag('config', GA4_ID, {
+        anonymize_ip: true,
+        cookie_flags: 'SameSite=None;Secure',
+      });
+    })();
+  </script>
+
+  <!-- ── Sentry Browser (Error tracking frontend) ───────── -->
+  <script>
+    (function() {
+      var SENTRY_DSN = document.querySelector('meta[name="sentry-dsn"]')?.content || '';
+      if (!SENTRY_DSN || SENTRY_DSN.startsWith('%%')) return;
+      // Chargement lazy Sentry CDN
+      var s = document.createElement('script');
+      s.src = 'https://browser.sentry-cdn.com/7.x/bundle.min.js';
+      s.onload = function() {
+        if (window.Sentry) {
+          Sentry.init({
+            dsn: SENTRY_DSN,
+            environment: 'production',
+            release: 'umbra@1.0.0',
+            tracesSampleRate: 0.05,
+            ignoreErrors: ['ResizeObserver loop', 'Non-Error promise rejection'],
+            beforeSend: function(event) {
+              // Supprimer PII
+              if (event.user) delete event.user.email;
+              return event;
+            }
+          });
+        }
+      };
+      document.head.appendChild(s);
+    })();
+  </script>
 </head>
 <body>
 
@@ -2021,6 +2082,67 @@ function resetAnalysis() {
   document.getElementById('empty-state').style.display = '';
   document.getElementById('score-ring-fill').style.strokeDashoffset = '276.46';
 }
+
+
+// ═══════════════ UMBRA ANALYTICS ════════════════════════════
+// Proxy server-side — la clé PostHog ne sort pas du backend
+const umbra = {
+  _distinctId: null,
+
+  _getId() {
+    if (!this._distinctId) {
+      // Générer un ID anonyme persistant (pas lié à l'email)
+      let id = localStorage.getItem('_umbra_aid');
+      if (!id) {
+        id = 'anon_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+        localStorage.setItem('_umbra_aid', id);
+      }
+      this._distinctId = id;
+    }
+    return this._distinctId;
+  },
+
+  setUser(accountId) {
+    // Appeler après login — remplace l'ID anonyme par l'account_id
+    this._distinctId = accountId;
+    localStorage.setItem('_umbra_aid', accountId);
+  },
+
+  async track(event, userType = null, properties = {}) {
+    try {
+      await fetch('/api/v1/analytics/track', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          event,
+          distinct_id: this._getId(),
+          user_type: userType,
+          properties: {
+            ...properties,
+            page: window.location.pathname,
+            referrer: document.referrer,
+          }
+        })
+      });
+      // GA4 aussi si disponible
+      if (window.gtag) {
+        window.gtag('event', event.replace(/[éèêë]/g,'e').replace(/[-]/g,'_'), {
+          event_category: 'umbra',
+          user_type: userType,
+          ...properties,
+        });
+      }
+    } catch(e) {
+      // Silencieux — analytics ne doit jamais crasher l'app
+    }
+  }
+};
+
+// ── Auto-track landing ───────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  umbra.track('landing_vue', null, {section: 'landing'});
+});
+// ════════════════════════════════════════════════════════════
 
 </script>
 </body>
