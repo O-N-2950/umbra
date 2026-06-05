@@ -25,6 +25,8 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
+from db.session import get_db
+from api.umbra_auth import get_current_account
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -59,8 +61,8 @@ class PurchaseRequest(BaseModel):
 
 @router.get("/me/passport")
 def my_passport(
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Retourne le passeport de confiance complet du compte courant."""
     from .services.trust_service import trust_service
@@ -145,8 +147,8 @@ def public_passport(
 @router.post("/events/hire")
 def confirm_hire(
     req: HireConfirmRequest,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Confirme une embauche (côté entreprise).
@@ -192,8 +194,8 @@ def confirm_hire(
 @router.post("/events/interview")
 def record_interview(
     req: InterviewRequest,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Signale qu'un entretien a eu lieu suite à ce match."""
     from .services.trust_service import trust_service, TrustEventType
@@ -213,8 +215,8 @@ def record_interview(
 @router.post("/events/no-followup")
 def record_no_followup(
     req: NoFollowupRequest,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Signale un contact sans suite.
@@ -242,8 +244,8 @@ def record_no_followup(
 
 @credits_router.get("/me")
 def my_credits(
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Solde de crédits et historique des 20 dernières transactions."""
     from .db.umbra_models import CreditBalance, CreditTransaction
@@ -291,8 +293,8 @@ def my_credits(
 @credits_router.post("/purchase")
 def purchase_credits(
     req: PurchaseRequest,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Initie un achat de crédits via Stripe.
