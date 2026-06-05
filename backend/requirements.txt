@@ -37,3 +37,6 @@ defusedxml>=0.7.1
 # Observabilité
 sentry-sdk[fastapi]>=1.40.0
 posthog>=3.3.0
+
+# Rate limiting
+slowapi>=0.1.9
