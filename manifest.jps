@@ -1,165 +1,158 @@
 ---
 # ═══════════════════════════════════════════════════════════
-# UMBRA — Jelastic Cloud Infomaniak
-# Manifest JPS (Jelastic Package Standard)
-# Import: Jelastic Dashboard → Marketplace → Import
-# © 2026 PEP's Swiss SA — Groupe NEO
+# UMBRA — Manifest JPS v2 Jelastic Cloud Infomaniak
+# Image Docker pré-buildée sur GHCR (déploiement rapide ~60s)
+# Import: Jelastic Dashboard → Marketplace → Import → JPS URL
+# URL: https://raw.githubusercontent.com/O-N-2950/umbra/master/manifest.jps
 # ═══════════════════════════════════════════════════════════
 
 jpsType: install
 jpsVersion: '1.8'
-id: umbra-infomaniak
-name: UMBRA — Recrutement Anonyme
+id: umbra-peps
+name: 🌑 UMBRA — Recrutement Anonyme Suisse
 version: '1.0.0'
-type: install
-category: apps/dev-tools
-homepage: https://umbra.work
-logo: https://matcho-production.up.railway.app/static/favicon.png
+homepage: https://github.com/O-N-2950/umbra
+logo: https://raw.githubusercontent.com/O-N-2950/umbra/master/backend/static/favicon.png
 
 description:
   text: |
-    UMBRA — Plateforme de recrutement anonyme suisse.
-    Stack: Python 3.12 + FastAPI + PostgreSQL + Gemini Flash.
-    Anonymat architectural, matching prédictif, révélation mutuelle.
-  short: Plateforme de recrutement anonyme — Suisse & frontaliers
+    UMBRA — Plateforme de recrutement anonyme Suisse & frontaliers.
+    
+    ✅ Anonymat architectural (identité ≠ profil de matching)
+    ✅ Matching multicritères 6D (compétences × culture × geo × salaire)
+    ✅ Révélation mutuelle cinématique
+    ✅ Passeport de confiance event-sourcing
+    ✅ Analyseur CV IA (Gemini Flash) gratuit phase lancement
+    ✅ Intelligence marché temps réel (salaires, tensions, prédictions 18 mois)
+    
+    Stack: Python 3.12 + FastAPI + PostgreSQL + Google Gemini Flash
+    Hébergement: 100% Suisse Infomaniak
+  short: Recrutement anonyme • Matching prédictif • 100% Suisse
 
-# ── Paramètres à remplir au déploiement ──────────────────────
 settings:
   fields:
-    - name: envName
-      caption: Nom de l'environnement
-      type: string
-      default: umbra-prod
-      required: true
-      
     - name: geminiApiKey
-      caption: Clé API Gemini (Google AI Studio)
+      caption: 🤖 Clé API Google Gemini (aistudio.google.com/apikey)
       type: string
       required: true
       inputType: password
       
     - name: resendApiKey
-      caption: Clé API Resend (emails)
+      caption: 📧 Clé API Resend (resend.com/api-keys)
       type: string
       required: true
       inputType: password
       
     - name: stripeSecretKey
-      caption: Clé secrète Stripe
+      caption: 💳 Clé Stripe (optionnel — laisser vide pour commencer)
       type: string
       required: false
       inputType: password
       
-    - name: appUrl
-      caption: URL de l'application (ex: https://umbra.jcloud.ik-server.com)
+    - name: appDomain
+      caption: 🌐 Domaine de l'app (ex: umbra-prod.jcloud.ik-server.com)
       type: string
       required: true
+      placeholder: umbra-prod.jcloud.ik-server.com
 
-# ── Topologie ────────────────────────────────────────────────
 nodes:
-  # Conteneur applicatif Python/FastAPI
-  - nodeType: docker
+  # ── Container UMBRA (Python/FastAPI) ──────────────────────
+  - nodeGroup: cp
+    nodeType: docker
     count: 1
-    cloudlets: 16          # 2 vCPU, 2 GB RAM garantis
-    cloudletsCount: 32     # max 4 vCPU, 4 GB RAM auto-scaling
-    fixedCloudlets: 4      # 0.5 vCPU + 512 MB garantis minimum
-    image: python:3.12-slim
+    fixedCloudlets: 4      # 0.5 vCPU + 512 MB garantis
+    cloudlets: 16          # max 2 vCPU + 2 GB (auto-scaling)
+    image: ghcr.io/o-n-2950/umbra:latest
     displayName: UMBRA API
+    cmd: sh /app/entrypoint.sh
     env:
       ENVIRONMENT: production
       APP_NAME: UMBRA
-      APP_VERSION: '1.0.0'
-      PORT: '8000'
-      FLAG_FACTURATION: 'false'
-    volumes:
-      - /app
-      - /app/static
-    links:
-      - db:POSTGRES
-    tag: umbra-api
-
-  # PostgreSQL 16 managé par Jelastic
-  - nodeType: postgresql
+      APP_VERSION: 1.0.0
+      PORT: 8000
+      FLAG_FACTURATION: "false"
+      POSTHOG_HOST: https://eu.i.posthog.com
+    
+  # ── PostgreSQL 16 ──────────────────────────────────────────
+  - nodeGroup: sqldb
+    nodeType: postgresql
     count: 1
-    cloudlets: 8
     fixedCloudlets: 4
+    cloudlets: 8
     displayName: UMBRA Database
-    env:
-      POSTGRES_DB: umbra
-      POSTGRES_USER: umbra_user
 
-# ── Actions au déploiement ───────────────────────────────────
 onInstall:
-  - installApp
-  - configureVariables
+  - setEnvVariables
   - setupDatabase
-  - startApp
+  - waitReady
+  
+onAfterInstall:
+  - installLetsEncrypt
 
 actions:
-  # Cloner le repo et installer
-  installApp:
-    - cmd[umbra-api]: |
-        apt-get update -qq && apt-get install -y --no-install-recommends git curl 2>/dev/null
-        git clone --depth 1 https://github.com/O-N-2950/umbra.git /app/umbra
-        cd /app/umbra/backend
-        pip install --no-cache-dir -r requirements.txt 2>&1 | tail -5
-        echo "✅ UMBRA installé"
-      
-  # Injecter les variables d'environnement
-  configureVariables:
-    - api:
-        method: env.control.AddContainerEnvVars
-        params:
-          nodeGroup: cp
-          vars:
-            GEMINI_API_KEY: "${settings.geminiApiKey}"
-            RESEND_API_KEY: "${settings.resendApiKey}"
-            STRIPE_SECRET_KEY: "${settings.stripeSecretKey}"
-            APP_URL: "${settings.appUrl}"
-            DATABASE_URL: "postgresql://umbra_user:${nodes.db.password}@${nodes.db.intIP}:5432/umbra"
-            JWT_SECRET: "${fn.password(32)}"
-            ENCRYPTION_KEY: "${fn.password(32)}"
-            POSTHOG_HOST: "https://eu.i.posthog.com"
+  setEnvVariables:
+    api:
+      method: env.control.AddContainerEnvVars
+      params:
+        nodeGroup: cp
+        vars:
+          GEMINI_API_KEY: "${settings.geminiApiKey}"
+          RESEND_API_KEY: "${settings.resendApiKey}"
+          STRIPE_SECRET_KEY: "${settings.stripeSecretKey}"
+          APP_URL: "https://${settings.appDomain}"
+          DATABASE_URL: "postgresql://${nodes.sqldb.user}:${nodes.sqldb.password}@${nodes.sqldb.intIP}:5432/${nodes.sqldb.dbname}"
+          JWT_SECRET: "${fn.password(32)}"
+          ENCRYPTION_KEY: "${fn.password(32)}"
+          SENTRY_DSN: ""
+          POSTHOG_API_KEY: ""
+          GA4_MEASUREMENT_ID: ""
 
-  # Créer la DB et lancer les migrations
   setupDatabase:
-    - cmd[db]: |
-        PGPASSWORD="${nodes.db.password}" psql -U umbra_user -d umbra -c "SELECT 1" 2>/dev/null && echo "DB OK"
-    - cmd[umbra-api]: |
-        cd /app/umbra/backend && alembic upgrade head && echo "✅ Migrations OK"
+    - cmd[sqldb]:
+        createdb -U ${nodes.sqldb.user} umbra 2>/dev/null || true
+        psql -U ${nodes.sqldb.user} umbra -c "SELECT 1" && echo "DB ready"
+    - cmd[cp]:
+        cd /app && alembic upgrade head 2>&1 | tail -5 && echo "Migrations OK"
 
-  # Démarrer l'application
-  startApp:
-    - cmd[umbra-api]: |
-        cd /app/umbra/backend
-        nohup uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 &
-        sleep 3 && curl -sf http://localhost:8000/ping && echo "✅ UMBRA UP"
+  waitReady:
+    - cmd[cp]:
+        for i in $(seq 1 10); do
+          curl -sf http://localhost:8000/ping && echo "UMBRA ready" && exit 0
+          sleep 3
+        done
+        echo "Timeout"
 
-# ── Add-ons post-déploiement ─────────────────────────────────
-addons:
-  # Let's Encrypt SSL automatique
-  - id: letsencrypt
-    name: Let's Encrypt SSL
-    
-# ── Message de succès ─────────────────────────────────────────
-success:
-  text: |
-    🌑 **UMBRA est déployé sur Jelastic Infomaniak !**
-    
-    ✅ API : http://${env.domain}:8000
-    ✅ Health : http://${env.domain}:8000/health
-    ✅ App : http://${env.domain}:8000/app
-    
-    **Prochaines étapes :**
-    1. Configurer votre domaine personnalisé dans l'onglet Routing
-    2. Activer SSL Let's Encrypt (Add-ons → Let's Encrypt)
-    3. Renseigner SENTRY_DSN + POSTHOG_API_KEY + GA4_MEASUREMENT_ID
-    
-    **Variables optionnelles à ajouter :**
-    ```
-    SENTRY_DSN=https://xxx@sentry.io/xxx
-    POSTHOG_API_KEY=phc_xxx
-    GA4_MEASUREMENT_ID=G-XXXXXXXXXX
-    ```
-    
-    Documentation : https://github.com/O-N-2950/umbra/blob/master/DEPLOY_CHECKLIST.md
+  installLetsEncrypt:
+    marketplace:
+      id: letsencrypt-ssl-addon
+      settings:
+        nodeGroup: cp
+        customDomains: "${settings.appDomain}"
+        fallbackToX1: true
+      skipOnError: true
+
+success: |
+  ## 🌑 UMBRA est déployé sur Jelastic Infomaniak !
+
+  **URL de votre application :** https://${settings.appDomain}
+
+  | Endpoint | Description |
+  |---|---|
+  | `/` | Landing UMBRA |
+  | `/app` | Application React complète |
+  | `/health` | Santé du service |
+  | `/api/umbra/cv-analyze` | Analyseur CV IA |
+  | `/api/v1/analytics/events` | Events PostHog |
+
+  **Variables analytics à ajouter dans Environment → Variables :**
+  ```
+  SENTRY_DSN = https://xxx@sentry.io/xxx
+  POSTHOG_API_KEY = phc_xxx
+  GA4_MEASUREMENT_ID = G-XXXXXXXXXX
+  ```
+
+  **SSL Let's Encrypt** installé automatiquement.
+  
+  **Coût estimé :** CHF 9–29/mois selon usage réel (paiement à la ressource consommée).
+  
+  Documentation complète : https://github.com/O-N-2950/umbra/blob/master/README_JELASTIC.md
