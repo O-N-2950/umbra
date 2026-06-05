@@ -29,10 +29,40 @@ if [ -n "$DATABASE_URL" ]; then
 
     # ── 1. Migrations Alembic (seulement si PostgreSQL) ──
     echo "📦 Alembic migrations..."
+    # Vérifier si la table alembic_version existe déjà
+    python3 -c "
+import os, sys
+from sqlalchemy import create_engine, text
+db_url = os.getenv('DATABASE_URL', '').replace('postgres://', 'postgresql://')
+if not db_url:
+    sys.exit(0)
+try:
+    engine = create_engine(db_url)
+    with engine.connect() as conn:
+        # Vérifier si alembic_version existe
+        result = conn.execute(text(\"SELECT to_regclass('alembic_version')\"))
+        row = result.fetchone()
+        if row and row[0]:
+            # Vérifier la version courante
+            ver = conn.execute(text('SELECT version_num FROM alembic_version')).fetchone()
+            if ver:
+                print(f'Alembic version: {ver[0]}')
+            else:
+                # Stamper si vide
+                print('Stamp head...')
+        else:
+            print('Nouvelle base — migrations fresh')
+except Exception as e:
+    print(f'Check failed: {e}', file=sys.stderr)
+    sys.exit(0)
+" 2>&1 || true
+    
     if alembic upgrade head 2>&1; then
         echo "✅ Migrations OK"
     else
-        echo "⚠️ Migrations échouées — démarrage sans migration"
+        echo "⚠️ Tentative stamp + retry..."
+        alembic stamp head 2>&1 || true
+        alembic upgrade head 2>&1 || echo "❌ Migrations échouées définitivement — démarrage quand même"
     fi
 else
     echo "⚠️ DATABASE_URL non définie — skip migrations, SQLite par défaut"
