@@ -1,0 +1,122 @@
+name: 🐳 UMBRA — Build Docker → GHCR → Jelastic
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - backend/**
+      - Dockerfile
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/umbra
+
+jobs:
+  # ── 1. Scan secrets ────────────────────────────────────────
+  security-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scanner les secrets
+        run: |
+          if grep -rE "AIzaSy[a-zA-Z0-9-_]{35}|sk_live_[a-zA-Z0-9]{24}|phc_[a-zA-Z0-9]{44}" \
+            backend/ --include="*.py" 2>/dev/null; then
+            echo "❌ Clé API détectée dans le code"
+            exit 1
+          fi
+          echo "✅ Aucun secret dans le code"
+
+  # ── 2. Build + push image Docker sur GHCR ──────────────────
+  build-push:
+    needs: security-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-tag: ${{ steps.meta.outputs.tags }}
+      
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Login GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Metadata image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=git-
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+
+      - name: Build et push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Résumé image
+        run: |
+          echo "### 🐳 Image Docker publiée" >> $GITHUB_STEP_SUMMARY
+          echo "- **Registry**: ghcr.io" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image**: \`ghcr.io/${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Digest**: \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Deploy Jelastic :** \`Marketplace → Import → JPS URL\`" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          echo "https://raw.githubusercontent.com/O-N-2950/umbra/master/manifest.jps" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+  # ── 3. Deploy Jelastic (si SSH configuré) ──────────────────
+  deploy-jelastic:
+    needs: build-push
+    runs-on: ubuntu-latest
+    if: vars.JELASTIC_APP_URL != ''
+    environment:
+      name: production
+      url: ${{ vars.JELASTIC_APP_URL }}
+    
+    steps:
+      - name: Setup SSH
+        if: secrets.JELASTIC_SSH_KEY != ''
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.JELASTIC_SSH_KEY }}" > ~/.ssh/jelastic
+          chmod 600 ~/.ssh/jelastic
+
+      - name: Redémarrer avec nouvelle image
+        if: secrets.JELASTIC_SSH_KEY != ''
+        run: |
+          ssh -i ~/.ssh/jelastic -p 3022 \
+            -o StrictHostKeyChecking=no \
+            ${{ secrets.JELASTIC_SSH_USER }}@${{ secrets.JELASTIC_SSH_HOST }} \
+            "docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest && \
+             docker stop umbra 2>/dev/null; \
+             docker run -d --name umbra --restart=always \
+               --env-file /app/.env \
+               -p 8000:8000 \
+               ghcr.io/${{ env.IMAGE_NAME }}:latest && \
+             echo '✅ UMBRA mis à jour'"
+
+      - name: Health check
+        if: vars.JELASTIC_APP_URL != ''
+        run: |
+          sleep 15
+          for i in 1 2 3; do
+            curl -sf "${{ vars.JELASTIC_APP_URL }}/ping" && break
+            sleep 10
+          done
