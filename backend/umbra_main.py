@@ -27,7 +27,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 # ══════════════════════════════════════════════════════════════
 # SENTRY — Init au démarrage (avant FastAPI app)
@@ -135,6 +136,14 @@ ALLOWED_ORIGINS = [
     os.getenv("APP_URL", ""),
 ]
 
+# Middleware rate limiting + security headers
+try:
+    from security.rate_limit import rate_limit_middleware
+    app.middleware("http")(rate_limit_middleware)
+    logger.info("✅ Rate limiting actif")
+except ImportError as e:
+    logger.warning("Rate limiting skipped: %s", e)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o for o in ALLOWED_ORIGINS if o],
@@ -195,6 +204,22 @@ except ImportError:
 def ping():
     """Healthcheck Railway ultra-rapide."""
     return {"ok": True}
+
+
+# ── Static files (UI React UMBRA) ──────────────────────────
+import os as _os
+_static_dir = _os.path.join(_os.path.dirname(__file__), "static")
+if _os.path.isdir(_static_dir):
+    app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
+@app.get("/app", include_in_schema=False)
+@app.get("/app/{path:path}", include_in_schema=False)
+async def serve_spa(path: str = ""):
+    """Sert le SPA React UMBRA."""
+    index = _os.path.join(_static_dir, "umbra-app.html")
+    if _os.path.exists(index):
+        return FileResponse(index)
+    return FileResponse(_os.path.join(_static_dir, "index.html"))
 
 
 @app.get("/")
