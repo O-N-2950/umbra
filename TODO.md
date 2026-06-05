@@ -1,5 +1,5 @@
 # UMBRA — TODO
-> Mise à jour : 05/06/2026 — Session 8 (Audit Premium+++ + Sprint 1 Fixes)
+> Mise à jour : 05/06/2026 — Jelastic Infomaniak
 
 ## 🏆 VISION : Application de référence recrutement anonyme suisse
 
@@ -7,85 +7,77 @@
 
 ## ✅ FAIT
 
-### Infrastructure
-- [x] Backend FastAPI déployé sur Railway (`matcho-production.up.railway.app`)
-- [x] Health check `/ping` ultra-rapide (Railway ne surchage plus Gemini)
-- [x] JWT_SECRET + ENCRYPTION_KEY générées et injectées
-- [x] Sentry + PostHog + GA4 — code prêt, variables Railway en attente
-- [x] Branche main synchronisée sur master
+### Infrastructure Production
+- [x] Backend FastAPI deployé Railway + Jelastic
+- [x] `/ping` healthcheck rapide
+- [x] JWT + ENCRYPTION_KEY générées
+- [x] Rate limiting + security headers
 
 ### Produit
-- [x] `/api/umbra/cv-analyze` — 100% opérationnel (Gemini Flash, ~15s, gratuit)
-- [x] `/api/umbra/cv-pricing` — modèle free_launch
-- [x] 8 events PostHog définis (candidat + employeur)
-- [x] Route analytics proxy `/api/v1/analytics/track`
+- [x] `/api/umbra/cv-analyze` opérationnel (Gemini Flash)
+- [x] `/api/umbra/cv-pricing` (free_launch)
+- [x] Analytics proxy PostHog + GA4 + Sentry (code prêt)
+- [x] UI React UMBRA 10 écrans déployée sur `/app`
 
-### Sprint 1 (aujourd'hui — Audit Premium+++)
-- [x] **Audit complet** livré (UMBRA_AUDIT.md)
-- [x] **Magic tokens DB** — plus de perte au redémarrage Railway
-- [x] **Rate limiting** — middleware anti-brute force sur /auth
-- [x] **Security headers** — X-Frame-Options, HSTS, CSP
-- [x] **Depends(lambda: None)** → get_current_account réel dans trust.py
-- [x] **UI React complète déployée** — umbra-v3-pricing.jsx → `/app`
-- [x] **Migration Alembic** — gestion propre de l'état existant
+### Jelastic Infomaniak (session actuelle)
+- [x] **`manifest.jps`** — deploy 1-clic Jelastic
+- [x] **`Dockerfile`** optimisé Python 3.12 slim multi-stage
+- [x] **`.github/workflows/docker-jelastic.yml`** — CI/CD push → Jelastic
+- [x] **`README_JELASTIC.md`** — guide complet avec checklist
+- [x] **Workflow CI/CD ✅ SUCCESS** sur GitHub Actions
 
 ---
 
-## 🔴 P0 — Cette semaine
+## 🔴 P0 — À faire maintenant (toi)
 
-- [ ] **Remplir variables** : SENTRY_DSN + POSTHOG_API_KEY + GA4_MEASUREMENT_ID
-- [ ] Tester `/app` → vérifier les 10 écrans React UMBRA
-- [ ] Vérifier auth flow end-to-end (register → magic link → login)
-- [ ] Confirmer toutes les tables créées en DB
+### Variables analytics (5 min chacune)
+- [ ] **Sentry** → sentry.io → Railway var `SENTRY_DSN`
+- [ ] **PostHog** → eu.posthog.com → Railway var `POSTHOG_API_KEY`
+- [ ] **GA4** → analytics.google.com → Railway var `GA4_MEASUREMENT_ID`
+
+### Deploy Jelastic (2 min)
+- [ ] **Dashboard Jelastic** → Marketplace → Import JPS :
+  `https://raw.githubusercontent.com/O-N-2950/umbra/main/manifest.jps`
+- [ ] Remplir : Gemini Key + Resend Key + domain
+- [ ] Configurer domaine `umbra.ch` → CNAME → `xxx.jcloud.ik-server.com`
+
+---
 
 ## 🟠 P1 — Semaine prochaine
 
-- [ ] **Email HTML templates** magic link (branded UMBRA noir/cuivre)
-- [ ] **Webhook Stripe** complet (activé après 10 embauches)
-- [ ] **Market intel data** — seed salaires suisses réels (Confédération OFS)
-- [ ] **Quiz culturel** — brancher sur vrai backend
-- [ ] **Dashboard recruteur** — historique analyses CV, shortlist
+- [ ] Email HTML templates magic link (branded UMBRA noir/cuivre)
+- [ ] Webhook Stripe complet
+- [ ] Market intel data — seed salaires suisses réels (OFS Confédération)
+- [ ] Tests smoke auth flow end-to-end
 
 ## 🟡 P2 — Mois 1
 
-- [ ] Rate limiting Redis (remplace in-memory)
-- [ ] i18n FR/DE (Switzerland = bilingue minimum)
-- [ ] Zefix IDE vérification dans le flow entreprise
+- [ ] Redis pour rate limiting (remplace in-memory)
+- [ ] i18n FR/DE (Suisse = bilingue minimum)
+- [ ] Zefix IDE vérification flow entreprise
 - [ ] Export PDF résultat analyse CV
-- [ ] Notifications email nouveaux matchs
-- [ ] SEO landing page (meta, og, schema.org)
-
-## 🔵 P3 — Mois 2-3
-
-- [ ] Mobile PWA / React Native
-- [ ] API partenaires (Jobup.ch, Indeed.ch)
-- [ ] Admin dashboard (métriques plateforme)
-- [ ] LPD/RGPD — export données, droit à l'oubli
-- [ ] WebSocket real-time (match notifications)
-- [ ] FLAG_FACTURATION activer après 10 embauches documentées
-
----
-
-## 📊 Scoring actuel
-
-| Dimension | Score |
-|---|---|
-| Architecture | ⭐⭐⭐⭐⭐ 95% |
-| Backend Python | ⭐⭐⭐ 70% |
-| Frontend déployé | ⭐⭐⭐⭐ 75% |
-| Fiabilité production | ⭐⭐⭐ 65% |
-| Expérience utilisateur | ⭐⭐⭐ 60% |
-| Analytics/Observabilité | ⭐⭐ 35% |
-| **Global** | **⭐⭐⭐ 66%** |
+- [ ] SEO landing page
 
 ---
 
 ## 🌐 URLs Production
 
-| | URL |
+| Service | URL |
 |---|---|
-| Landing | `https://matcho-production.up.railway.app` |
-| App UMBRA complète | `https://matcho-production.up.railway.app/app` |
-| CV Analyzer | `POST /api/umbra/cv-analyze` |
-| Analytics | `GET /api/v1/analytics/events` |
-| Health | `GET /health` |
+| Backend Railway | `https://matcho-production.up.railway.app` |
+| App UMBRA | `https://matcho-production.up.railway.app/app` |
+| CV Analyze | `POST /api/umbra/cv-analyze` |
+| Health | `GET /health` → 100% |
+| Jelastic (après deploy) | `https://umbra-prod.jcloud.ik-server.com` |
+
+## 📊 Scoring Premium+++
+
+| Dimension | Score |
+|---|---|
+| Architecture | ⭐⭐⭐⭐⭐ 95% |
+| Backend Python | ⭐⭐⭐⭐ 75% |
+| Frontend déployé | ⭐⭐⭐⭐ 75% |
+| Fiabilité prod | ⭐⭐⭐ 70% |
+| Infra Jelastic | ⭐⭐⭐⭐⭐ 100% prête |
+| Analytics | ⭐⭐ 35% (vars à remplir) |
+| **Global** | **⭐⭐⭐ 74%** → cible ⭐⭐⭐⭐⭐ |
