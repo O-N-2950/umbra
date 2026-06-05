@@ -45,9 +45,10 @@ ACCESS_TTL_MIN  = int(os.getenv("JWT_ACCESS_TTL_MIN",  "60"))     # 1h
 REFRESH_TTL_DAY = int(os.getenv("JWT_REFRESH_TTL_DAY", "30"))     # 30j
 MAGIC_TTL_MIN   = int(os.getenv("MAGIC_LINK_TTL_MIN",  "15"))     # 15min
 
-# In-memory store pour magic tokens (Redis en prod)
-# {token_hash: {account_id, expires_at, used}}
-_magic_store: dict[str, dict] = {}
+# Magic tokens persistés en PostgreSQL
+# (remplace le dict en mémoire qui se perdait au redémarrage)
+from db.session import get_db
+from sqlalchemy import text
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer = HTTPBearer(auto_error=False)
@@ -90,31 +91,44 @@ def _hash_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _create_magic_token(account_id: str) -> str:
-    """Génère un token magic link sécurisé, le stocke hashé."""
+def _create_magic_token(account_id: str, db=None) -> str:
+    """Génère un token magic link sécurisé, le stocke en DB."""
     token = secrets.token_urlsafe(32)
     h = _hash_token(token)
-    _magic_store[h] = {
-        "account_id": account_id,
-        "expires_at": datetime.utcnow() + timedelta(minutes=MAGIC_TTL_MIN),
-        "used": False,
-    }
+    expires = datetime.utcnow() + timedelta(minutes=MAGIC_TTL_MIN)
+    if db:
+        db.execute(text(
+            "INSERT INTO magic_tokens (token_hash, account_id, expires_at, used) "
+            "VALUES (:h, :aid, :exp, false) "
+            "ON CONFLICT (token_hash) DO NOTHING"
+        ), {"h": h, "aid": account_id, "exp": expires})
+        db.commit()
     return token
 
 
-def _consume_magic_token(token: str) -> Optional[str]:
-    """Valide et consomme un magic token. Retourne account_id ou None."""
+def _consume_magic_token(token: str, db=None) -> Optional[str]:
+    """Valide et consomme un magic token depuis DB. Retourne account_id ou None."""
     h = _hash_token(token)
-    entry = _magic_store.get(h)
-    if not entry:
+    if not db:
         return None
-    if entry["used"]:
+    try:
+        row = db.execute(text(
+            "SELECT account_id, expires_at, used FROM magic_tokens WHERE token_hash = :h"
+        ), {"h": h}).fetchone()
+        if not row:
+            return None
+        if row.used:
+            return None
+        if datetime.utcnow() > row.expires_at:
+            db.execute(text("DELETE FROM magic_tokens WHERE token_hash = :h"), {"h": h})
+            db.commit()
+            return None
+        db.execute(text("UPDATE magic_tokens SET used = true WHERE token_hash = :h"), {"h": h})
+        db.commit()
+        return row.account_id
+    except Exception as e:
+        logger.error("magic token consume error: %s", e)
         return None
-    if datetime.utcnow() > entry["expires_at"]:
-        del _magic_store[h]
-        return None
-    entry["used"] = True
-    return entry["account_id"]
 
 
 def _create_jwt(account_id: str, token_type: str = "access") -> str:
