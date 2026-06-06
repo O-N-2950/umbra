@@ -1,245 +1,199 @@
 #!/usr/bin/env python3
 """
-UMBRA — Infomaniak Jelastic Cloud Deployment Script
-====================================================
-Pattern identique à SwissRH (scripts/deploy-jelastic.py).
-Execute depuis GitHub Actions (réseau ouvert vers Jelastic).
-
-Usage:
-  JELASTIC_TOKEN=xxx GEMINI_API_KEY=xxx python3 scripts/deploy-jelastic.py
+UMBRA — Jelastic Infomaniak Deploy (multi-endpoint + diagnostic)
+Pattern SwissRH/PLACIO. Execute depuis GitHub Actions.
 """
 
-import urllib.request
-import urllib.parse
-import json
-import ssl
-import sys
-import os
-import time
+import urllib.request, urllib.parse, json, ssl, sys, os, time
+import secrets as pysecrets
 
-# ─── Config ──────────────────────────────────────────────────
 JELASTIC_TOKEN = os.environ.get("JELASTIC_TOKEN", "")
-JELASTIC_BASE  = "https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com"
-APP_ID         = "jelastic"
 ENV_NAME       = "umbra-prod"
 GITHUB_REPO    = "https://github.com/O-N-2950/umbra"
 GITHUB_BRANCH  = "main"
 
-# ─── Variables d'environnement UMBRA ─────────────────────────
-import secrets as pysecrets
-REQUIRED_VARS = {
-    "ENVIRONMENT":    "production",
-    "APP_NAME":       "UMBRA",
-    "APP_VERSION":    "1.0.0",
-    "PORT":           "8000",
-    "FLAG_FACTURATION": "false",
-    "POSTHOG_HOST":   "https://eu.i.posthog.com",
-}
+# Endpoints candidats (PLACIO utilisait app.jpc, SwissRH utilisait 3pxsmf7oa31n)
+ENDPOINTS = [
+    ("https://app.jpc.infomaniak.com", "jelastic"),
+    ("https://app.jpc.infomaniak.com", "3pxsmf7oa31n"),
+    ("https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com", "jelastic"),
+    ("https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com", "3pxsmf7oa31n"),
+    ("https://jca.infomaniak.com", "jelastic"),
+]
 
-SECRET_VARS = ["GEMINI_API_KEY", "RESEND_API_KEY", "STRIPE_SECRET_KEY",
-               "SENTRY_DSN", "POSTHOG_API_KEY", "GA4_MEASUREMENT_ID"]
-
-# ─── Helpers ─────────────────────────────────────────────────
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
 
-def api(path, params=None):
-    p = {"appid": APP_ID, "session": JELASTIC_TOKEN, **(params or {})}
-    url = f"{JELASTIC_BASE}/1.0/{path}?{urllib.parse.urlencode(p)}"
+BASE = None
+APP_ID = None
+
+def raw_call(base, appid, path, params=None, post=False):
+    p = {"appid": appid, "session": JELASTIC_TOKEN, **(params or {})}
     try:
-        resp = urllib.request.urlopen(urllib.request.Request(url), timeout=30, context=ctx)
+        if post:
+            body = urllib.parse.urlencode(p).encode()
+            req = urllib.request.Request(f"{base}/1.0/{path}", data=body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"})
+        else:
+            url = f"{base}/1.0/{path}?{urllib.parse.urlencode(p)}"
+            req = urllib.request.Request(url)
+        resp = urllib.request.urlopen(req, timeout=20, context=ctx)
         return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        try:
+            return json.loads(e.read().decode())
+        except:
+            return {"result": 99, "http": e.code}
     except Exception as e:
-        return {"result": 99, "error": str(e)}
+        return {"result": 99, "error": str(e)[:80]}
+
+def api(path, params=None):
+    return raw_call(BASE, APP_ID, path, params)
 
 def api_post(path, params=None):
-    p = {"appid": APP_ID, "session": JELASTIC_TOKEN, **(params or {})}
-    body = urllib.parse.urlencode(p).encode()
-    req = urllib.request.Request(
-        f"{JELASTIC_BASE}/1.0/{path}", data=body,
-        headers={"Content-Type": "application/x-www-form-urlencoded"}
-    )
-    try:
-        resp = urllib.request.urlopen(req, timeout=120, context=ctx)
-        return json.loads(resp.read().decode())
-    except Exception as e:
-        return {"result": 99, "error": str(e)}
+    return raw_call(BASE, APP_ID, path, params, post=True)
 
 def ok(r, step):
     if r.get("result") == 0:
         print(f"  OK {step}")
         return True
-    print(f"  FAIL {step}: {json.dumps(r)[:300]}")
+    print(f"  FAIL {step}: {json.dumps(r)[:250]}")
     return False
 
-# ─── Main ────────────────────────────────────────────────────
 def main():
+    global BASE, APP_ID
+    
     if not JELASTIC_TOKEN:
         print("ERREUR: JELASTIC_TOKEN requis")
-        print("  -> manager.infomaniak.com -> Jelastic -> Settings -> API")
         sys.exit(1)
 
-    print("=== UMBRA -> Infomaniak Jelastic Cloud ===")
-    print(f"Platform: {JELASTIC_BASE}")
-    print(f"Env: {ENV_NAME}")
+    print("=== UMBRA -> Jelastic Infomaniak ===")
     print()
-
-    # 1. Vérifier le token
-    print("1. Verification token...")
-    r = api("users/rest/getinfo")
-    if not ok(r, "Token valide"):
+    print("0. Diagnostic endpoints...")
+    
+    for base, appid in ENDPOINTS:
+        r = raw_call(base, appid, "users/rest/getinfo")
+        result = r.get("result", "?")
+        status = "VALIDE" if result == 0 else f"result={result} {r.get('error', r.get('http',''))}"
+        print(f"   {base} (appid={appid}): {status}")
+        if result == 0:
+            BASE, APP_ID = base, appid
+            print(f"   >>> ENDPOINT RETENU: {BASE} appid={APP_ID}")
+            print(f"   User: {r.get('email', r.get('uid', '?'))}")
+            break
+    
+    if not BASE:
         print()
-        print("LE TOKEN JELASTIC EST EXPIRE OU INVALIDE.")
-        print("Regenerer un token:")
-        print("  1. https://manager.infomaniak.com/v3/ng/jelastic/10299")
-        print("  2. Dashboard Jelastic -> Settings (icone utilisateur) -> API -> Generate Token")
-        print("  3. Mettre a jour le secret GitHub JELASTIC_TOKEN")
+        print("=" * 60)
+        print("AUCUN ENDPOINT NE VALIDE LE TOKEN — TOKEN EXPIRE")
+        print("=" * 60)
+        print()
+        print("Pour regenerer le token Jelastic (2 min):")
+        print("  1. Ouvrir https://manager.infomaniak.com/v3/ng/jelastic/10299")
+        print("     (clic sur ton produit Jelastic Cloud)")
+        print("  2. Dans le dashboard Jelastic: clic sur ton avatar (haut droite)")
+        print("     -> Settings -> Access Tokens -> Add Access Token")
+        print("     -> Cocher toutes les permissions -> Generate")
+        print("  3. Copier le token et mettre a jour:")
+        print("     - Le fichier projet Claude 'token_full_access_JELASTIC_CLOUD_INFOMANIAK'")
+        print("     - Le secret GitHub: gh secret set JELASTIC_TOKEN")
+        print()
         sys.exit(1)
-    print(f"   User: {r.get('uid', '?')} | email: {r.get('email', '?')}")
 
-    # 2. Vérifier/créer l'environnement
+    # 2. Environnements
     print()
-    print("2. Verification environnement...")
+    print("2. Environnements existants...")
     r = api("environment/rest/getenvs")
-    envs = r.get("envs", [])
-    print(f"   Environnements existants: {[e.get('env',{}).get('envName') for e in envs]}")
-    env_exists = any(e.get("env", {}).get("envName") == ENV_NAME for e in envs)
+    envs = r.get("envs", []) or r.get("infos", [])
+    names = [e.get("env", {}).get("envName") for e in envs]
+    print(f"   Envs: {names}")
+    env_exists = ENV_NAME in names
 
     if not env_exists:
-        print(f"   Creation de {ENV_NAME} (Docker python + PostgreSQL 16)...")
+        print(f"   Creation {ENV_NAME}...")
         topology = {
             "shortdomain": ENV_NAME,
             "region": "default",
             "nodes": [
-                {
-                    "nodeType": "nodejs",
-                    "tag": "22",
-                    "count": 1,
-                    "fixedCloudlets": 2,
-                    "flexibleCloudlets": 12,
-                    "nodeGroup": "cp",
-                    "displayName": "UMBRA API",
-                },
-                {
-                    "nodeType": "postgresql",
-                    "tag": "16",
-                    "count": 1,
-                    "fixedCloudlets": 2,
-                    "flexibleCloudlets": 8,
-                    "nodeGroup": "sqldb",
-                    "displayName": "UMBRA DB",
-                }
+                {"nodeType": "nodejs", "tag": "22", "count": 1,
+                 "fixedCloudlets": 2, "flexibleCloudlets": 12, "nodeGroup": "cp"},
+                {"nodeType": "postgresql", "tag": "16", "count": 1,
+                 "fixedCloudlets": 2, "flexibleCloudlets": 8, "nodeGroup": "sqldb"},
             ]
         }
-        r = api_post("environment/rest/createenvironment",
-                     {"topology": json.dumps(topology)})
-        if not ok(r, f"Environnement {ENV_NAME} cree"):
-            # Essayer avec topologie docker
-            print("   Retry avec node docker python...")
-            topology["nodes"][0] = {
-                "nodeType": "docker",
-                "count": 1,
-                "fixedCloudlets": 2,
-                "flexibleCloudlets": 12,
-                "nodeGroup": "cp",
-                "displayName": "UMBRA API",
-                "image": "python:3.12-slim",
-            }
-            r = api_post("environment/rest/createenvironment",
-                         {"topology": json.dumps(topology)})
-            if not ok(r, f"Environnement {ENV_NAME} cree (docker)"):
-                sys.exit(1)
-        # Attendre que l'env soit prêt
-        print("   Attente demarrage env (60s)...")
+        r = api_post("environment/rest/createenvironment", {"topology": json.dumps(topology)})
+        if not ok(r, f"Env {ENV_NAME} cree"):
+            sys.exit(1)
+        print("   Attente 60s...")
         time.sleep(60)
     else:
-        print(f"   OK {ENV_NAME} existe deja")
+        print(f"   OK {ENV_NAME} existe")
 
-    # 3. Variables d'environnement
+    # 3. Récupérer le node cp + infos DB
     print()
-    print("3. Variables d'environnement...")
-    
-    # Générer JWT_SECRET et ENCRYPTION_KEY si premiers deploy
-    all_vars = dict(REQUIRED_VARS)
-    all_vars["JWT_SECRET"] = os.environ.get("JWT_SECRET", pysecrets.token_hex(32))
-    all_vars["ENCRYPTION_KEY"] = os.environ.get("ENCRYPTION_KEY", pysecrets.token_hex(32))
-    
-    for k in SECRET_VARS:
+    print("3. Infos environnement...")
+    r = api("environment/rest/getenvinfo", {"envName": ENV_NAME})
+    nodes = r.get("nodes", [])
+    cp_node = next((n for n in nodes if n.get("nodeGroup") == "cp"), None)
+    db_node = next((n for n in nodes if n.get("nodeGroup") == "sqldb"), None)
+    domain = r.get("env", {}).get("domain", f"{ENV_NAME}.jcloud.ik-server.com")
+    print(f"   Domain: {domain}")
+    print(f"   Node cp: {cp_node.get('id') if cp_node else '?'}")
+    print(f"   Node db: {db_node.get('id') if db_node else '?'} ip={db_node.get('intIP') if db_node else '?'}")
+
+    # 4. Variables d'environnement
+    print()
+    print("4. Variables...")
+    db_ip = db_node.get("intIP", "127.0.0.1") if db_node else "127.0.0.1"
+    env_vars = {
+        "ENVIRONMENT": "production",
+        "APP_NAME": "UMBRA",
+        "PORT": "8000",
+        "FLAG_FACTURATION": "false",
+        "POSTHOG_HOST": "https://eu.i.posthog.com",
+        "JWT_SECRET": os.environ.get("JWT_SECRET", pysecrets.token_hex(32)),
+        "ENCRYPTION_KEY": os.environ.get("ENCRYPTION_KEY", pysecrets.token_hex(32)),
+        "DATABASE_URL": f"postgresql://webadmin@{db_ip}:5432/umbra",
+    }
+    for k in ["GEMINI_API_KEY", "RESEND_API_KEY", "STRIPE_SECRET_KEY", "SENTRY_DSN", "POSTHOG_API_KEY"]:
         v = os.environ.get(k, "")
         if v:
-            all_vars[k] = v
-
-    # AddContainerEnvVars (toutes d'un coup)
+            env_vars[k] = v
+    
     r = api_post("environment/control/rest/addcontainerenvvars", {
-        "envName": ENV_NAME,
-        "nodeGroup": "cp",
-        "vars": json.dumps(all_vars),
+        "envName": ENV_NAME, "nodeGroup": "cp", "vars": json.dumps(env_vars),
     })
-    if not ok(r, f"{len(all_vars)} variables posees"):
-        # Fallback: une par une avec addenv (vieux endpoint)
-        for k, v in all_vars.items():
-            r = api_post("environment/rest/addenv", {
-                "envName": ENV_NAME, "name": k, "value": v,
-            })
-            ok(r, f"Var {k}")
+    ok(r, f"{len(env_vars)} variables")
 
-    # 4. Déploiement depuis GitHub
+    # 5. Deploy via ExecCmd (pattern PLACIO: clone + install + run)
     print()
-    print("4. Deploiement depuis GitHub...")
-    r = api_post("environment/rest/deployscript", {
-        "envName": ENV_NAME,
-        "repo": GITHUB_REPO,
-        "branch": GITHUB_BRANCH,
-        "hooks": json.dumps({
-            "build": "cd backend && pip install --no-cache-dir -r requirements.txt",
-            "run": "cd backend && sh entrypoint.sh"
+    print("5. Deploy code...")
+    if cp_node:
+        node_id = cp_node["id"]
+        cmd = (
+            "cd /home/jelastic && rm -rf umbra && "
+            f"git clone --depth 1 -b {GITHUB_BRANCH} {GITHUB_REPO}.git umbra 2>&1 | tail -2 && "
+            "cd umbra/backend && "
+            "(command -v python3 || sudo apt-get install -y python3 python3-pip) >/dev/null 2>&1; "
+            "pip3 install --no-cache-dir -r requirements.txt 2>&1 | tail -2 && "
+            "(pkill -f uvicorn || true) && sleep 2 && "
+            "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 "
+            "> /tmp/umbra.log 2>&1 & "
+            "sleep 10 && curl -sf http://localhost:8000/ping && echo UMBRA_UP || tail -20 /tmp/umbra.log"
+        )
+        r = api_post("environment/control/rest/execcmdbyid", {
+            "envName": ENV_NAME, "nodeId": node_id,
+            "commandList": json.dumps([{"command": cmd, "params": ""}])
         })
-    })
-    if not ok(r, "Deploiement declenche"):
-        print("   Tentative via ExecCmd direct sur le node...")
-        # Récupérer le nodeId du groupe cp
-        r2 = api("environment/rest/getenvinfo", {"envName": ENV_NAME})
-        nodes = r2.get("nodes", [])
-        cp_node = next((n for n in nodes if n.get("nodeGroup") == "cp"), None)
-        if cp_node:
-            node_id = cp_node["id"]
-            print(f"   Node cp: {node_id}")
-            cmd = (
-                "cd /home/jelastic && "
-                "rm -rf umbra && "
-                f"git clone --depth 1 -b {GITHUB_BRANCH} {GITHUB_REPO}.git umbra && "
-                "cd umbra/backend && "
-                "pip install --no-cache-dir -r requirements.txt 2>&1 | tail -3 && "
-                "(pkill -f uvicorn || true) && sleep 2 && "
-                "nohup python -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 "
-                "> /tmp/umbra.log 2>&1 & "
-                "sleep 8 && curl -sf http://localhost:8000/ping && echo UMBRA_UP"
-            )
-            r3 = api_post("environment/control/rest/execcmdbyid", {
-                "envName": ENV_NAME,
-                "nodeId": node_id,
-                "commandList": json.dumps([{"command": cmd, "params": ""}])
-            })
-            ok(r3, "ExecCmd deploy")
-            if r3.get("result") == 0:
-                for resp in r3.get("responses", []):
-                    print(f"   stdout: {resp.get('out','')[-500:]}")
+        if r.get("result") == 0:
+            for resp in r.get("responses", []):
+                print(f"   {resp.get('out','')[-600:]}")
+        else:
+            print(f"   ExecCmd: {json.dumps(r)[:250]}")
 
-    # 5. Info finale
     print()
-    print("5. Verification environnement...")
-    r = api("environment/rest/getenvinfo", {"envName": ENV_NAME})
-    if r.get("result") == 0:
-        env = r.get("env", {})
-        domain = env.get("domain", "?")
-        print(f"   Domain: {domain}")
-        print()
-        print("=== DEPLOIEMENT TERMINE ===")
-        print(f"URL: https://{domain}")
-        print(f"Health: https://{domain}/ping")
-    else:
-        print(f"   getenvinfo: {json.dumps(r)[:200]}")
+    print(f"=== TERMINE — https://{domain}/ping ===")
 
 if __name__ == "__main__":
     main()
