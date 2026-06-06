@@ -68,8 +68,37 @@ def main():
     # 2. Créer si absent — avec réponse COMPLÈTE loggée
     if not umbra:
         print()
-        print("2. Creation umbra-prod (reponse complete logguee)...")
-        env_def = {"region": "default", "shortdomain": "umbra-prod"}
+        print("2a. Regions disponibles...")
+        r = api("environment/control/rest/getregions")
+        region_name = None
+        if r.get("result") == 0:
+            # La réponse contient array de regions avec uniqueName + domains
+            regions = r.get("array", []) or r.get("regions", [])
+            for reg in regions:
+                uname = reg.get("uniqueName", "?")
+                domain = ""
+                hgs = reg.get("hardNodeGroups", [])
+                for hg in hgs:
+                    domain = hg.get("vfsDomain", "") or domain
+                is_default = reg.get("isDefault", False)
+                print(f"   Region: {uname} | default={is_default} | {domain}")
+                if region_name is None or is_default:
+                    region_name = uname
+        else:
+            print(f"   getregions: {json.dumps(r)[:300]}")
+        
+        if not region_name:
+            # Fallback: omettre la region (laisser Jelastic choisir)
+            region_name = None
+            print("   Aucune region — on omet le parametre")
+        else:
+            print(f"   Region retenue: {region_name}")
+        
+        print()
+        print("2. Creation umbra-prod...")
+        env_def = {"shortdomain": "umbra-prod"}
+        if region_name:
+            env_def["region"] = region_name
         nodes = [
             {"nodeType": "nodejs", "tag": "22", "count": 1,
              "fixedCloudlets": 2, "flexibleCloudlets": 12, "nodeGroup": "cp"},
@@ -83,8 +112,11 @@ def main():
         # LOG COMPLET de la réponse
         print(f"   REPONSE COMPLETE: {json.dumps(r)[:1500]}")
         
-        if r.get("result") != 0:
-            sys.exit(f"Creation echouee: {r}")
+        # Vérifier le result EXTERNE et INTERNE
+        inner = r.get("response", {})
+        if r.get("result") != 0 or (isinstance(inner, dict) and inner.get("result", 0) != 0):
+            err = inner.get("error", "") if isinstance(inner, dict) else ""
+            sys.exit(f"Creation echouee: result_ext={r.get('result')} result_int={inner.get('result') if isinstance(inner,dict) else '?'} err={err}")
         
         # La réponse contient peut-être le vrai nom + node passwords
         resp = r.get("response", r)
