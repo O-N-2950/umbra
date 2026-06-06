@@ -13,12 +13,14 @@ GITHUB_REPO    = "https://github.com/O-N-2950/umbra"
 GITHUB_BRANCH  = "main"
 
 # Endpoints candidats (PLACIO utilisait app.jpc, SwissRH utilisait 3pxsmf7oa31n)
+# Appid universel de la plateforme Jelastic (hardcode dans le code source Jelastic)
+JELASTIC_UNIVERSAL_APPID = "1dd8d191d38fff45e62564fcf67fdcd6"
+
 ENDPOINTS = [
-    ("https://app.jpc.infomaniak.com", "jelastic"),
-    ("https://app.jpc.infomaniak.com", "3pxsmf7oa31n"),
-    ("https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com", "jelastic"),
-    ("https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com", "3pxsmf7oa31n"),
-    ("https://jca.infomaniak.com", "jelastic"),
+    ("https://app.jpc.infomaniak.com", JELASTIC_UNIVERSAL_APPID),
+    ("https://jpc.infomaniak.com", JELASTIC_UNIVERSAL_APPID),
+    ("https://app.jpc.infomaniak.com", "cluster"),
+    ("https://3pxsmf7oa31n.infomaniak.jcloud-ver-jpc.ik-server.com", JELASTIC_UNIVERSAL_APPID),
 ]
 
 ctx = ssl.create_default_context()
