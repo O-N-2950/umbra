@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""
-UMBRA — Jelastic Infomaniak Deploy
-appid=cluster + paths environment/control/rest/* (API Virtuozzo correcte)
-"""
+"""UMBRA — Jelastic Infomaniak Deploy (final)"""
 
 import urllib.request, urllib.parse, json, ssl, sys, os, time
 import secrets as pysecrets
@@ -10,7 +7,7 @@ import secrets as pysecrets
 JELASTIC_TOKEN = os.environ.get("JELASTIC_TOKEN", "")
 BASE           = "https://app.jpc.infomaniak.com"
 APP_ID         = "cluster"
-ENV_NAME       = "umbra-prod"
+ENV_PREFIX     = "umbra-prod"
 GITHUB_REPO    = "https://github.com/O-N-2950/umbra"
 GITHUB_BRANCH  = "main"
 
@@ -45,52 +42,33 @@ def ok(r, step):
     print(f"  FAIL {step}: {json.dumps(r)[:250]}")
     return False
 
+def find_env():
+    """Trouve l'env umbra par préfixe dans getenvs (nom exact)."""
+    r = api("environment/control/rest/getenvs")
+    if r.get("result") != 0:
+        return None, None
+    for info in r.get("infos", []):
+        env = info.get("env", {})
+        name = env.get("envName", "")
+        if name.startswith(ENV_PREFIX) or name.startswith("umbra"):
+            return name, info
+    return None, None
+
 def main():
     if not JELASTIC_TOKEN:
         print("ERREUR: JELASTIC_TOKEN requis")
         sys.exit(1)
 
     print("=== UMBRA -> Jelastic Infomaniak ===")
-    print(f"Endpoint: {BASE} appid={APP_ID}")
     print()
 
-    # 1. Lister les environnements (le vrai path API)
-    print("1. Environnements existants...")
-    r = api("environment/control/rest/getenvs")
-    if r.get("result") != 0:
-        # Diagnostiquer les variantes de path
-        print(f"   getenvs: {json.dumps(r)[:200]}")
-        for path in [
-            "environment/control/rest/getenvs",
-            "env/control/rest/getenvs",
-            "environment/environment/rest/getenvs",
-        ]:
-            r2 = api(path)
-            print(f"   {path}: result={r2.get('result')} {str(r2.get('error',''))[:80]}")
-            if r2.get("result") == 0:
-                r = r2
-                break
+    # 1. Chercher l'env umbra (créé lors du run précédent)
+    print("1. Recherche env umbra...")
+    env_name, env_info = find_env()
     
-    if r.get("result") != 0:
-        print()
-        print("Le token est reconnu mais n'a pas acces a environment.Control")
-        print("-> Regenerer un token avec TOUTES les permissions:")
-        print("   Dashboard Jelastic -> avatar -> Settings -> Access Tokens")
-        print("   -> Add -> Scope: All -> Generate")
-        sys.exit(1)
-    
-    envs = r.get("infos", [])
-    names = [e.get("env", {}).get("envName") for e in envs]
-    print(f"   Envs existants: {names}")
-    env_exists = ENV_NAME in names
-
-    # 2. Créer l'environnement si besoin
-    if not env_exists:
-        print(f"\n2. Creation {ENV_NAME} (nodejs22 + postgres16)...")
-        env_def = {
-            "region": "default",
-            "shortdomain": ENV_NAME,
-        }
+    if not env_name:
+        print("   Pas trouve — creation...")
+        env_def = {"region": "default", "shortdomain": ENV_PREFIX}
         nodes = [
             {"nodeType": "nodejs", "tag": "22", "count": 1,
              "fixedCloudlets": 2, "flexibleCloudlets": 12, "nodeGroup": "cp"},
@@ -98,38 +76,37 @@ def main():
              "fixedCloudlets": 2, "flexibleCloudlets": 8, "nodeGroup": "sqldb"},
         ]
         r = api("environment/control/rest/createenvironment", {
-            "env": json.dumps(env_def),
-            "nodes": json.dumps(nodes),
+            "env": json.dumps(env_def), "nodes": json.dumps(nodes),
         }, post=True, timeout=300)
-        if not ok(r, f"Creation {ENV_NAME}"):
+        if not ok(r, "Creation"):
             sys.exit(1)
-        print("   Attente demarrage 90s...")
+        # La réponse de création contient le nom + les nodes avec passwords
+        resp_env = r.get("response", {}).get("env", {}) or r.get("env", {})
+        env_name = resp_env.get("envName", ENV_PREFIX)
+        print(f"   Cree: {env_name}")
+        print("   Attente 90s...")
         time.sleep(90)
-    else:
-        print(f"   OK {ENV_NAME} existe deja")
-
-    # 3. Infos env
-    print("\n3. Infos environnement...")
-    r = api("environment/control/rest/getenvinfo", {"envName": ENV_NAME})
-    if not ok(r, "getenvinfo"):
+        env_name, env_info = find_env()
+    
+    if not env_name:
+        print("ERREUR: env introuvable apres creation")
         sys.exit(1)
-    nodes = r.get("nodes", [])
-    env_info = r.get("env", {})
-    domain = env_info.get("domain", f"{ENV_NAME}.jcloud.ik-server.com")
+    
+    print(f"   Env: {env_name}")
+    env = env_info.get("env", {})
+    domain = env.get("domain", "")
+    status = env.get("status", "?")
+    print(f"   Domain: {domain} | status: {status}")
+    
+    nodes = env_info.get("nodes", [])
     cp_node = next((n for n in nodes if n.get("nodeGroup") == "cp"), None)
     db_node = next((n for n in nodes if n.get("nodeGroup") == "sqldb"), None)
-    print(f"   Domain: {domain}")
     print(f"   Node cp: {cp_node.get('id') if cp_node else '?'}")
     print(f"   Node db: {db_node.get('id') if db_node else '?'} intIP={db_node.get('intIP') if db_node else '?'}")
-    
-    # Mot de passe DB depuis la creation (si fourni)
-    db_password = ""
-    for n in nodes:
-        if n.get("nodeGroup") == "sqldb":
-            db_password = n.get("password", "")
 
-    # 4. Variables d'environnement
-    print("\n4. Variables d'environnement...")
+    # 2. Variables d'environnement
+    print()
+    print("2. Variables...")
     db_ip = db_node.get("intIP", "127.0.0.1") if db_node else "127.0.0.1"
     
     env_vars = {
@@ -141,51 +118,78 @@ def main():
         "JWT_SECRET": os.environ.get("JWT_SECRET") or pysecrets.token_hex(32),
         "ENCRYPTION_KEY": os.environ.get("ENCRYPTION_KEY") or pysecrets.token_hex(32),
     }
-    if db_password:
-        env_vars["DATABASE_URL"] = f"postgresql://webadmin:{db_password}@{db_ip}:5432/umbra"
-    
     for k in ["GEMINI_API_KEY", "RESEND_API_KEY", "STRIPE_SECRET_KEY", "SENTRY_DSN", "POSTHOG_API_KEY"]:
         v = os.environ.get(k, "")
         if v:
             env_vars[k] = v
 
     r = api("environment/control/rest/addcontainerenvvars", {
-        "envName": ENV_NAME, "nodeGroup": "cp", "vars": json.dumps(env_vars),
+        "envName": env_name, "nodeGroup": "cp", "vars": json.dumps(env_vars),
     }, post=True)
-    ok(r, f"{len(env_vars)} variables posees")
+    ok(r, f"{len(env_vars)} variables")
 
-    # 5. Deploy code via ExecCmd
-    print("\n5. Deploy code (clone + install + run)...")
+    # 3. Setup DB umbra
+    print()
+    print("3. Base de donnees...")
+    if db_node:
+        r = api("environment/control/rest/execcmdbyid", {
+            "envName": env_name, "nodeId": db_node["id"],
+            "commandList": json.dumps([{
+                "command": "psql -U webadmin -c \"CREATE DATABASE umbra\" 2>&1 || echo DB_EXISTS",
+                "params": ""
+            }])
+        }, post=True, timeout=60)
+        if r.get("result") == 0:
+            for resp in r.get("responses", []):
+                print(f"   {resp.get('out','')[:150]}")
+        else:
+            print(f"   createdb: {json.dumps(r)[:150]}")
+
+    # 4. Deploy code
+    print()
+    print("4. Deploy code UMBRA...")
     if cp_node:
         node_id = cp_node["id"]
         cmd = (
             "cd /home/jelastic && rm -rf umbra && "
-            f"git clone --depth 1 -b {GITHUB_BRANCH} {GITHUB_REPO}.git umbra 2>&1 | tail -1 && "
+            f"git clone --depth 1 -b {GITHUB_BRANCH} {GITHUB_REPO}.git umbra 2>&1 | tail -1; "
             "cd umbra/backend && "
-            "which python3 && python3 --version; "
-            "pip3 install --no-cache-dir -r requirements.txt 2>&1 | tail -2 && "
-            "(pkill -f uvicorn 2>/dev/null || true) && sleep 2 && "
+            "(python3 --version || echo NO_PYTHON); "
+            "(pip3 --version >/dev/null 2>&1 || (curl -sS https://bootstrap.pypa.io/get-pip.py | python3 - --user 2>&1 | tail -1)); "
+            "export PATH=$HOME/.local/bin:$PATH; "
+            "pip3 install --user --no-cache-dir -r requirements.txt 2>&1 | tail -2; "
+            "(pkill -f uvicorn 2>/dev/null || true); sleep 2; "
             "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 "
             "> /tmp/umbra.log 2>&1 & "
-            "sleep 12 && (curl -sf http://localhost:8000/ping && echo \" UMBRA_UP\") "
-            "|| (echo LOGS: && tail -25 /tmp/umbra.log)"
+            "sleep 15 && (curl -sf http://localhost:8000/ping && echo UMBRA_UP) "
+            "|| (echo ---LOGS--- && tail -30 /tmp/umbra.log)"
         )
         r = api("environment/control/rest/execcmdbyid", {
-            "envName": ENV_NAME, "nodeId": node_id,
+            "envName": env_name, "nodeId": node_id,
             "commandList": json.dumps([{"command": cmd, "params": ""}])
-        }, post=True, timeout=300)
+        }, post=True, timeout=400)
         if r.get("result") == 0:
             for resp in r.get("responses", []):
-                out = resp.get("out", "")
-                err = resp.get("errOut", "")
-                print(f"   stdout: {out[-700:]}")
-                if err:
-                    print(f"   stderr: {err[-300:]}")
+                print(f"   stdout: {resp.get('out','')[-900:]}")
+                if resp.get("errOut"):
+                    print(f"   stderr: {resp.get('errOut','')[-300:]}")
         else:
-            print(f"   ExecCmd: {json.dumps(r)[:300]}")
+            print(f"   ExecCmd: {json.dumps(r)[:250]}")
+
+    # 5. SSL + résultat
+    print()
+    print("5. Activation SSL integre...")
+    r = api("environment/control/rest/editenvsettings", {
+        "envName": env_name,
+        "settings": json.dumps({"sslstate": True})
+    }, post=True)
+    ok(r, "SSL")
 
     print()
-    print(f"=== https://{domain}/ping ===")
+    print("=" * 50)
+    print(f"UMBRA DEPLOYE: https://{domain}")
+    print(f"Health: https://{domain}/ping")
+    print("=" * 50)
 
 if __name__ == "__main__":
     main()
