@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""UMBRA — Jelastic Deploy — création env (région auto-détectée)"""
+"""UMBRA — Jelastic Deploy v2 : node Docker python:3.12-slim"""
 
 import urllib.request, urllib.parse, json, ssl, sys, os, time
 import secrets as pysecrets
@@ -8,11 +8,21 @@ JELASTIC_TOKEN = os.environ.get("JELASTIC_TOKEN", "")
 BASE           = "https://app.jpc.infomaniak.com"
 APP_ID         = "cluster"
 GITHUB_REPO    = "https://github.com/O-N-2950/umbra"
-GITHUB_BRANCH  = "main"
 
 ctx = ssl.create_default_context()
 ctx.check_hostname = False
 ctx.verify_mode = ssl.CERT_NONE
+
+DOCKER_CMD = (
+    "bash -c \'"
+    "apt-get update -qq 2>/dev/null; apt-get install -y -qq git curl 2>/dev/null; "
+    "rm -rf /app/umbra; "
+    "git clone --depth 1 -b main https://github.com/O-N-2950/umbra.git /app/umbra && "
+    "cd /app/umbra/backend && "
+    "pip install --no-cache-dir -r requirements.txt && "
+    "exec python -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2"
+    "\'"
+)
 
 def api(path, params=None, post=False, timeout=120):
     p = {"appid": APP_ID, "session": JELASTIC_TOKEN, **(params or {})}
@@ -35,12 +45,11 @@ def api(path, params=None, post=False, timeout=120):
         return {"result": 99, "error": str(e)[:100]}
 
 def inner_ok(r):
-    """Vérifie result externe ET interne."""
     if r.get("result") != 0:
-        return False, r.get("error", json.dumps(r)[:150])
+        return False, str(r.get("error", json.dumps(r)[:150]))
     inner = r.get("response", {})
     if isinstance(inner, dict) and inner.get("result", 0) != 0:
-        return False, inner.get("error", json.dumps(inner)[:150])
+        return False, str(inner.get("error", json.dumps(inner)[:150]))
     return True, ""
 
 def list_envs():
@@ -53,79 +62,86 @@ def list_envs():
                         "domain": env.get("domain", "?"), "info": info})
     return out
 
-def try_create(env_def, nodes):
-    r = api("environment/control/rest/createenvironment", {
-        "env": json.dumps(env_def), "nodes": json.dumps(nodes),
-    }, post=True, timeout=300)
-    success, err = inner_ok(r)
-    return success, err, r
-
 def main():
     if not JELASTIC_TOKEN:
         sys.exit("JELASTIC_TOKEN requis")
 
-    print("=== UMBRA -> Jelastic ===")
+    print("=== UMBRA -> Jelastic v2 (Docker python:3.12) ===")
     
-    # 1. Env existant ?
     envs = list_envs()
     umbra = next((e for e in envs if "umbra" in e["name"]), None)
     
+    # 1. Si l'env existe avec un node nodejs → le détruire (Python 3.9 incompatible)
+    if umbra:
+        info = umbra["info"]
+        nodes_list = info.get("nodes", [])
+        cp = next((n for n in nodes_list if n.get("nodeGroup") == "cp"), {})
+        node_type = cp.get("nodeType", "")
+        print(f"1. Env existant: {umbra['name']} | cp nodeType={node_type}")
+        
+        if node_type != "docker":
+            print(f"   Node {node_type} != docker — destruction pour recreer proprement...")
+            r = api("environment/control/rest/destroyenv", {
+                "envName": umbra["name"]
+            }, post=True, timeout=180)
+            s, e = inner_ok(r)
+            print(f"   destroy: {'OK' if s else e[:150]}")
+            if s:
+                print("   Attente destruction 45s...")
+                time.sleep(45)
+                umbra = None
+    
+    # 2. Créer avec node docker python:3.12-slim
     if not umbra:
-        # 2. Log COMPLET de getregions pour comprendre la structure
-        print("\n2. Structure getregions (JSON complet):")
-        r = api("environment/control/rest/getregions")
-        print(json.dumps(r)[:3000])
-        
-        # Extraire les hardNodeGroups uniqueName
-        hng_names = []
-        for reg in (r.get("array", []) or []):
-            for hng in reg.get("hardNodeGroups", []):
-                un = hng.get("uniqueName", "")
-                if un:
-                    hng_names.append(un)
-        print(f"\n   hardNodeGroups: {hng_names}")
-        
+        print()
+        print("2. Creation umbra-prod (docker python:3.12-slim + postgres16)...")
+        env_def = {"shortdomain": "umbra-prod", "sslstate": True}
         nodes = [
-            {"nodeType": "nodejs", "tag": "22", "count": 1,
-             "fixedCloudlets": 2, "flexibleCloudlets": 12, "nodeGroup": "cp"},
-            {"nodeType": "postgresql", "tag": "16", "count": 1,
-             "fixedCloudlets": 2, "flexibleCloudlets": 8, "nodeGroup": "sqldb"},
+            {
+                "nodeType": "docker",
+                "count": 1,
+                "fixedCloudlets": 3,
+                "flexibleCloudlets": 16,
+                "nodeGroup": "cp",
+                "displayName": "UMBRA API",
+                "image": "python:3.12-slim",
+                "cmd": DOCKER_CMD,
+                "env": {"PORT": "8000"},
+            },
+            {
+                "nodeType": "postgresql",
+                "tag": "16",
+                "count": 1,
+                "fixedCloudlets": 2,
+                "flexibleCloudlets": 8,
+                "nodeGroup": "sqldb",
+                "displayName": "UMBRA DB",
+            },
         ]
+        r = api("environment/control/rest/createenvironment", {
+            "env": json.dumps(env_def), "nodes": json.dumps(nodes),
+        }, post=True, timeout=300)
+        s, e = inner_ok(r)
+        if not s:
+            print(f"   ECHEC docker: {e[:300]}")
+            print(f"   REPONSE: {json.dumps(r)[:800]}")
+            sys.exit(1)
+        print("   OK creation lancee (l'image se telecharge + build ~3-5 min)")
         
-        # 3. Tentatives de création dans l'ordre:
-        # a) sans region, b) avec chaque hardNodeGroup, c) avec hostGroup
-        attempts = [("sans region", {"shortdomain": "umbra-prod"})]
-        for hn in hng_names:
-            attempts.append((f"region={hn}", {"shortdomain": "umbra-prod", "region": hn}))
-            attempts.append((f"hostGroup={hn}", {"shortdomain": "umbra-prod", "hostGroup": hn}))
-        
-        created = False
-        for label, env_def in attempts:
-            print(f"\n3. Tentative creation ({label})...")
-            success, err, full = try_create(env_def, nodes)
-            if success:
-                print(f"   OK — creation lancee ({label})")
-                created = True
-                break
-            else:
-                print(f"   ECHEC: {err[:200]}")
-        
-        if not created:
-            sys.exit("\nToutes les tentatives ont echoue")
-        
-        # 4. Polling
-        print("\n4. Polling (max 5 min)...")
-        for i in range(10):
+        # 3. Polling
+        print()
+        print("3. Polling (max 7 min)...")
+        for i in range(14):
             time.sleep(30)
             envs = list_envs()
             umbra = next((e for e in envs if "umbra" in e["name"]), None)
             status = umbra["status"] if umbra else "absent"
-            print(f"   [{(i+1)*30}s] umbra: {status}")
+            print(f"   [{(i+1)*30}s] umbra: status={status}")
             if umbra and str(umbra["status"]) == "1":
                 break
         
-        if not umbra:
-            sys.exit("Env jamais apparu")
+        if not umbra or str(umbra["status"]) != "1":
+            sys.exit("Env pas running apres 7 min — verifier dashboard")
     
     env_name = umbra["name"]
     domain = umbra["domain"]
@@ -134,11 +150,14 @@ def main():
     cp_node = next((n for n in nodes_list if n.get("nodeGroup") == "cp"), None)
     db_node = next((n for n in nodes_list if n.get("nodeGroup") == "sqldb"), None)
     
-    print(f"\n5. Env: {env_name} | domain: {domain} | status: {umbra['status']}")
-    print(f"   cp={cp_node.get('id') if cp_node else '?'} db={db_node.get('id') if db_node else '?'}")
+    print()
+    print(f"4. Env: {env_name} | https://{domain}")
+    print(f"   cp={cp_node.get('id') if cp_node else '?'} ({cp_node.get('nodeType','?') if cp_node else ''})")
+    print(f"   db={db_node.get('id') if db_node else '?'} intIP={db_node.get('intIP','?') if db_node else ''}")
 
-    # 6. Variables
-    print("\n6. Variables...")
+    # 5. Variables d'environnement (avant le démarrage final)
+    print()
+    print("5. Variables...")
     env_vars = {
         "ENVIRONMENT": "production", "APP_NAME": "UMBRA", "PORT": "8000",
         "FLAG_FACTURATION": "false", "POSTHOG_HOST": "https://eu.i.posthog.com",
@@ -155,33 +174,42 @@ def main():
     }, post=True)
     s, e = inner_ok(r)
     print(f"   vars: {'OK' if s else e[:150]}")
-
-    # 7. Deploy code
-    print("\n7. Deploy code...")
-    if cp_node:
-        cmd = (
-            "cd /home/jelastic && rm -rf umbra && "
-            f"git clone --depth 1 -b {GITHUB_BRANCH} {GITHUB_REPO}.git umbra 2>&1 | tail -1; "
-            "cd umbra/backend && (python3 --version 2>&1); "
-            "pip3 install --user --no-cache-dir -r requirements.txt 2>&1 | tail -2; "
-            "export PATH=$HOME/.local/bin:$PATH; "
-            "(pkill -f uvicorn 2>/dev/null || true); sleep 2; "
-            "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 "
-            "> /tmp/umbra.log 2>&1 & "
-            "sleep 15 && (curl -sf http://localhost:8000/ping && echo UMBRA_UP) "
-            "|| (echo ---LOGS--- && tail -30 /tmp/umbra.log)"
-        )
-        r = api("environment/control/rest/execcmdbyid", {
-            "envName": env_name, "nodeId": cp_node["id"],
-            "commandList": json.dumps([{"command": cmd, "params": ""}])
-        }, post=True, timeout=400)
-        if r.get("result") == 0:
-            for resp in r.get("responses", []):
-                print(f"   {resp.get('out','')[-900:]}")
-        else:
-            print(f"   ExecCmd: {json.dumps(r)[:250]}")
-
-    print(f"\n=== https://{domain}/ping ===")
+    
+    # 6. Redémarrer le container pour appliquer les vars + relancer le cmd
+    print()
+    print("6. Restart container (applique vars + relance cmd)...")
+    r = api("environment/control/rest/restartnodes", {
+        "envName": env_name, "nodeGroup": "cp",
+    }, post=True, timeout=180)
+    s, e = inner_ok(r)
+    print(f"   restart: {'OK' if s else e[:150]}")
+    
+    # 7. Attendre le démarrage de l'app (pip install ~2 min)
+    print()
+    print("7. Attente demarrage app (pip install, max 5 min)...")
+    app_up = False
+    for i in range(10):
+        time.sleep(30)
+        try:
+            req = urllib.request.Request(f"https://{domain}/ping")
+            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+                if resp.status == 200:
+                    print(f"   [{(i+1)*30}s] PING OK — UMBRA EST EN LIGNE")
+                    app_up = True
+                    break
+        except Exception as ex:
+            print(f"   [{(i+1)*30}s] pas encore ({str(ex)[:50]})")
+    
+    print()
+    print("=" * 55)
+    if app_up:
+        print(f"UMBRA DEPLOYE SUR JELASTIC INFOMANIAK (SUISSE)")
+    else:
+        print("Env cree — app pas encore up (pip install peut durer)")
+    print(f"URL:    https://{domain}")
+    print(f"Health: https://{domain}/ping")
+    print(f"App:    https://{domain}/app")
+    print("=" * 55)
 
 if __name__ == "__main__":
     main()
