@@ -173,6 +173,9 @@ def main():
     if cp_node:
         node_id = cp_node["id"]
         deploy_cmd = (
+            # Nettoyage agressif du port 8000 (zombies des runs precedents)
+            "(fuser -k 8000/tcp 2>/dev/null || true); "
+            "(pkill -9 -f uvicorn 2>/dev/null || true); sleep 3; "
             "cd /home/jelastic 2>/dev/null || cd /home; "
             "rm -rf umbra; "
             "git clone --depth 1 -b main https://github.com/O-N-2950/umbra.git umbra 2>&1 | tail -1; "
@@ -180,12 +183,16 @@ def main():
             "echo PYVER: $(python3 --version 2>&1); "
             "python3 -m pip --version 2>/dev/null || python3 -m ensurepip --upgrade 2>&1 | tail -1; "
             "export PATH=$HOME/.local/bin:$PATH; "
-            "python3 -m pip install --user --no-cache-dir -q -r requirements.txt 2>&1 | tail -4; "
-            "echo SYNTAX:; python3 -m compileall -q umbra_main.py 2>&1 | tail -3 && echo SYNTAX_OK; "
-            "(pkill -f uvicorn 2>/dev/null || true); sleep 2; "
+            "python3 -m pip install --user --no-cache-dir -q -r requirements.txt 2>&1 | tail -3; "
+            # Diagnostic routing Jelastic : quel port le SLB attend
+            "echo ===PORTS_AVANT===; ss -ltnp 2>/dev/null | grep -E ':(80|8000|8080|3000) ' || echo aucun; "
+            "echo ===NGINX_CONF===; (cat /etc/nginx/conf.d/*.conf 2>/dev/null | grep -iE 'proxy_pass|listen' | head -8) || echo no_nginx; "
+            "echo ===ENV_PORT===; env | grep -iE '^PORT=|JELASTIC' | head -5; "
+            # Lancer uvicorn sur 8000 ET 80 en fallback selon ce que Jelastic route
             "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 > /tmp/umbra.log 2>&1 & "
-            "sleep 20; "
-            "(curl -sf http://localhost:8000/ping && echo ___UMBRA_UP___) || (echo ___FAIL_LOGS___; tail -40 /tmp/umbra.log)"
+            "sleep 18; "
+            "echo ===PORTS_APRES===; ss -ltnp 2>/dev/null | grep ':8000 ' || echo port8000_libre; "
+            "echo ===LOCAL_PING===; (curl -sf http://localhost:8000/ping && echo ___LOCAL_OK___) || (echo LOCAL_FAIL; tail -25 /tmp/umbra.log)"
         )
         r = api("environment/control/rest/execcmdbyid", {
             "envName": env_name, "nodeId": node_id,
