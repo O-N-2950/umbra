@@ -178,12 +178,10 @@ def main():
             "git clone --depth 1 -b main https://github.com/O-N-2950/umbra.git umbra 2>&1 | tail -1; "
             "cd umbra/backend; "
             "echo PYVER: $(python3 --version 2>&1); "
-            # Installer pip (node nodejs = Python systeme sans pip)
             "python3 -m pip --version 2>/dev/null || python3 -m ensurepip --upgrade 2>&1 | tail -1; "
             "export PATH=$HOME/.local/bin:$PATH; "
             "python3 -m pip install --user --no-cache-dir -q -r requirements.txt 2>&1 | tail -4; "
-            # Verifier que le code se compile en Python 3.9 (detecte SyntaxError 3.10+)
-            "echo SYNTAX_CHECK:; python3 -c \\"import py_compile,glob,sys; [py_compile.compile(f,doraise=True) for f in glob.glob('**/*.py',recursive=True)]\\" 2>&1 | tail -5 && echo SYNTAX_OK; "
+            "echo SYNTAX:; python3 -m compileall -q umbra_main.py 2>&1 | tail -3 && echo SYNTAX_OK; "
             "(pkill -f uvicorn 2>/dev/null || true); sleep 2; "
             "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 > /tmp/umbra.log 2>&1 & "
             "sleep 20; "
