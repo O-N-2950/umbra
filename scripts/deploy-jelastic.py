@@ -80,19 +80,8 @@ def main():
         print(f"1. Env existant: {umbra['name']} | cp nodeType={node_type}")
         
         if node_type != "docker":
-            print(f"   Node {node_type} != docker — suppression pour recreer proprement...")
-            # deleteenv n'accepte PAS de param password
-            r = api("environment/control/rest/deleteenv", {
-                "envName": umbra["name"]
-            }, post=True, timeout=180)
-            s, e = inner_ok(r)
-            print(f"   deleteenv: {'OK' if s else e[:150]}")
-            if s:
-                print("   Attente suppression 60s...")
-                time.sleep(60)
-                umbra = None
-            else:
-                sys.exit(f"Suppression echouee: {e}")
+            print(f"   Node {node_type} (Python systeme) — install pip + run en place")
+            # Pas de suppression (deleteenv exige password compte) — on utilise le node tel quel
     
     # 2. Créer avec node docker python:3.12-slim
     if not umbra:
