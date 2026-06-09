@@ -1,0 +1,14 @@
+name: Diag Regions
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Diagnostic regions
+        env:
+          JELASTIC_TOKEN: ${{ secrets.JELASTIC_TOKEN }}
+        run: python3 scripts/diag-regions.py
