@@ -167,30 +167,57 @@ def main():
     s, e = inner_ok(r)
     print(f"   vars: {'OK' if s else e[:150]}")
     
-    # 6. Redémarrer le container pour appliquer les vars + relancer le cmd
+    # 6. Déploiement du code via ExecCmd (clone + pip + uvicorn)
     print()
-    print("6. Restart container (applique vars + relance cmd)...")
-    r = api("environment/control/rest/restartnodes", {
-        "envName": env_name, "nodeGroup": "cp",
-    }, post=True, timeout=180)
-    s, e = inner_ok(r)
-    print(f"   restart: {'OK' if s else e[:150]}")
-    
-    # 7. Attendre le démarrage de l'app (pip install ~2 min)
+    print("6. Deploiement code (clone + ensurepip + uvicorn)...")
+    if cp_node:
+        node_id = cp_node["id"]
+        deploy_cmd = (
+            "cd /home/jelastic 2>/dev/null || cd /home; "
+            "rm -rf umbra; "
+            "git clone --depth 1 -b main https://github.com/O-N-2950/umbra.git umbra 2>&1 | tail -1; "
+            "cd umbra/backend; "
+            "echo PYVER: $(python3 --version 2>&1); "
+            # Installer pip (node nodejs = Python systeme sans pip)
+            "python3 -m pip --version 2>/dev/null || python3 -m ensurepip --upgrade 2>&1 | tail -1; "
+            "export PATH=$HOME/.local/bin:$PATH; "
+            "python3 -m pip install --user --no-cache-dir -q -r requirements.txt 2>&1 | tail -4; "
+            # Verifier que le code se compile en Python 3.9 (detecte SyntaxError 3.10+)
+            "echo SYNTAX_CHECK:; python3 -c \\"import py_compile,glob,sys; [py_compile.compile(f,doraise=True) for f in glob.glob('**/*.py',recursive=True)]\\" 2>&1 | tail -5 && echo SYNTAX_OK; "
+            "(pkill -f uvicorn 2>/dev/null || true); sleep 2; "
+            "nohup python3 -m uvicorn umbra_main:app --host 0.0.0.0 --port 8000 --workers 2 > /tmp/umbra.log 2>&1 & "
+            "sleep 20; "
+            "(curl -sf http://localhost:8000/ping && echo ___UMBRA_UP___) || (echo ___FAIL_LOGS___; tail -40 /tmp/umbra.log)"
+        )
+        r = api("environment/control/rest/execcmdbyid", {
+            "envName": env_name, "nodeId": node_id,
+            "commandList": json.dumps([{"command": deploy_cmd, "params": ""}])
+        }, post=True, timeout=420)
+        if r.get("result") == 0:
+            for resp in r.get("responses", []):
+                out = resp.get("out", "")
+                print("   --- sortie node ---")
+                for ln in out.split("\n"):
+                    if ln.strip():
+                        print(f"   {ln[:200]}")
+        else:
+            print(f"   ExecCmd erreur: {json.dumps(r)[:300]}")
+
+    # 7. Vérifier que l'app répond publiquement
     print()
-    print("7. Attente demarrage app (pip install, max 5 min)...")
+    print("7. Verification publique...")
     app_up = False
-    for i in range(10):
-        time.sleep(30)
+    for i in range(8):
+        time.sleep(20)
         try:
             req = urllib.request.Request(f"https://{domain}/ping")
             with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
                 if resp.status == 200:
-                    print(f"   [{(i+1)*30}s] PING OK — UMBRA EST EN LIGNE")
+                    print(f"   [{(i+1)*20}s] PING OK — UMBRA EN LIGNE")
                     app_up = True
                     break
         except Exception as ex:
-            print(f"   [{(i+1)*30}s] pas encore ({str(ex)[:50]})")
+            print(f"   [{(i+1)*20}s] {str(ex)[:50]}")
     
     print()
     print("=" * 55)
