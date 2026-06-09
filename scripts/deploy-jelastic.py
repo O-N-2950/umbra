@@ -81,45 +81,18 @@ def main():
         
         if node_type != "docker":
             print(f"   Node {node_type} != docker — suppression pour recreer proprement...")
-            deleted = False
-            for method in ["deleteenv", "destroyenv", "deleteEnv"]:
-                r = api(f"environment/control/rest/{method}", {
-                    "envName": umbra["name"], "password": ""
-                }, post=True, timeout=180)
-                s, e = inner_ok(r)
-                print(f"   {method}: {'OK' if s else e[:120]}")
-                if s:
-                    deleted = True
-                    break
-            if deleted:
-                print("   Attente suppression 50s...")
-                time.sleep(50)
+            # deleteenv n'accepte PAS de param password
+            r = api("environment/control/rest/deleteenv", {
+                "envName": umbra["name"]
+            }, post=True, timeout=180)
+            s, e = inner_ok(r)
+            print(f"   deleteenv: {'OK' if s else e[:150]}")
+            if s:
+                print("   Attente suppression 60s...")
+                time.sleep(60)
                 umbra = None
             else:
-                print("   Suppression impossible — tentative changetopology vers docker...")
-                # Fallback: changer la topologie en place
-                env_def = {"shortdomain": "umbra-prod"}
-                nodes = [
-                    {"nodeType": "docker", "count": 1, "fixedCloudlets": 3,
-                     "flexibleCloudlets": 16, "nodeGroup": "cp", "image": "python:3.12-slim",
-                     "cmd": DOCKER_CMD, "env": {"PORT": "8000"}},
-                    {"nodeType": "postgresql", "tag": "16", "count": 1,
-                     "fixedCloudlets": 2, "flexibleCloudlets": 8, "nodeGroup": "sqldb"},
-                ]
-                r = api("environment/control/rest/changetopology", {
-                    "envName": umbra["name"],
-                    "env": json.dumps(env_def), "nodes": json.dumps(nodes),
-                }, post=True, timeout=300)
-                s, e = inner_ok(r)
-                print(f"   changetopology: {'OK' if s else e[:200]}")
-                if s:
-                    print("   Attente reconfiguration 90s...")
-                    time.sleep(90)
-                    # Recharger l'env
-                    envs2 = list_envs()
-                    umbra = next((e2 for e2 in envs2 if "umbra" in e2["name"]), umbra)
-                else:
-                    sys.exit("Impossible de convertir l'env en docker")
+                sys.exit(f"Suppression echouee: {e}")
     
     # 2. Créer avec node docker python:3.12-slim
     if not umbra:
