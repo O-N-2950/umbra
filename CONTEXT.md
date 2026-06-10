@@ -16,9 +16,9 @@
 
 - **Marché cible** : Suisse (Arc Jurassien, Bâle, Genève, Zurich) → Europe francophone
 - **Entité** : PEP's Swiss SA (Groupe NEO)
-- **Repo** : https://github.com/O-N-2950/matcho
+- **Repo** : https://github.com/O-N-2950/umbra
 - **Domaine** : à finaliser (umbra.work / umbra.jobs / umbra.ch)
-- **Stack hosting** : Railway + PostgreSQL
+- **Stack hosting** : Jelastic Infomaniak (Genève, Suisse) — prod ; Railway — staging
 
 ---
 
@@ -103,7 +103,7 @@ Fichier prototype : `umbra-v3-pricing.jsx`
 | Paiement        | Stripe (annonces à la valeur + remboursements) |
 | IA              | Google Gemini Flash (prédictions marché)       |
 | Monitoring      | Pattern Groupe NEO (crash_monitor + health)    |
-| Repo            | https://github.com/O-N-2950/matcho             |
+| Repo            | https://github.com/O-N-2950/umbra             |
 
 ---
 
@@ -355,9 +355,9 @@ Passer à l'Option 2 — analyses bundlées dans l'annonce UMBRA :
 - Frontend : React + TypeScript + Tailwind + shadcn/ui + tRPC client
 - Backend : Node.js + Express + tRPC + Drizzle ORM
 - IA : Gemini Flash via invokeLLM (server/_core/llm.ts)
-- DB : MySQL (DATABASE_URL)
-- Deploy : Railway (matcho-production.up.railway.app)
-- Repo : github.com/O-N-2950/matcho
+- DB : PostgreSQL + PostGIS (DATABASE_URL)
+- Deploy : Jelastic Infomaniak (umbra-prod, Genève) — prod ; Railway — staging
+- Repo : github.com/O-N-2950/umbra
 
 
 ---
