@@ -17,7 +17,7 @@ from typing import List, Optional, Dict
 from datetime import datetime
 import httpx
 
-logger = logging.getLogger("matcho.onboarding")
+logger = logging.getLogger("umbra.onboarding")
 
 from .uid_register import UIDRegisterService, CompanyResult
 

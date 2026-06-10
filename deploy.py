@@ -8,7 +8,7 @@ Usage: python3 deploy.py
 import os, sys, json, urllib.request, urllib.error, getpass, time, webbrowser, subprocess
 
 INFOMANIAK_TOKEN = os.getenv("INFOMANIAK_TOKEN", 
-    "uvGxaRxguScs9RMH0_lS_swPKilo3Vc2aex3ATgKiigRMsYB2zP8eOWNuIPN1nMKF3j30b6kthsQry_P")
+    "")
 JELASTIC_SERVICE_ID = "10299"
 JPS_URL = "https://raw.githubusercontent.com/O-N-2950/umbra/main/manifest.jps"
 
@@ -85,7 +85,7 @@ for i in range(20):
                 print(f"   Réponse: {d}")
                 
                 # Configurer GitHub variable
-                gh_token = os.getenv("GITHUB_TOKEN", "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")
+                gh_token = os.environ["GITHUB_TOKEN"]
                 result = call("PUT",
                     "https://api.github.com/repos/O-N-2950/umbra/actions/variables/JELASTIC_APP_URL",
                     {"name": "JELASTIC_APP_URL", "value": app_url},

@@ -31,6 +31,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from api.umbra_auth import get_current_account, get_db
 
 logger = logging.getLogger("umbra.matches")
 
@@ -147,12 +148,34 @@ def _check_mutual_signal(db: Session, match_id: str) -> bool:
     Vérifie si les deux profils ont signalé leur intérêt pour ce match.
     Si oui → déclenche la révélation.
     Retourne True si révélation déclenchée.
-    """
-    from .db.umbra_models import InterestSignal, RevealStatus, Match
 
-    match = db.query(Match).filter(Match.id == match_id).first()
+    ATOMICITÉ : un verrou de ligne (SELECT ... FOR UPDATE) est posé sur le match,
+    ce qui sérialise les appels concurrents. Sans ce verrou, deux signaux simultanés
+    (les deux parties cliquent au même instant) pourraient tous deux passer la
+    vérification et déclencher une double révélation ou un état incohérent.
+    La révélation mutuelle est un engagement LÉGAL : elle doit être atomique.
+    Sur PostgreSQL (prod) le verrou est réel ; sur SQLite (staging) il est ignoré
+    sans erreur (un seul writer de toute façon).
+    """
+    from db.umbra_models import InterestSignal, RevealStatus, Match
+
+    # Verrou de ligne sur le match : sérialise les déclenchements concurrents.
+    q = db.query(Match).filter(Match.id == match_id)
+    try:
+        match = q.with_for_update().first()
+    except Exception:
+        # SQLite ou backend sans support FOR UPDATE → fallback sans verrou
+        match = q.first()
     if not match:
         return False
+
+    # Si déjà révélé par un appel concurrent qui a gagné le verrou, ne pas refaire.
+    existing = db.query(InterestSignal).filter(
+        InterestSignal.match_id == match_id,
+        InterestSignal.status == RevealStatus.MUTUAL,
+    ).first()
+    if existing:
+        return True
 
     signals = db.query(InterestSignal).filter(
         InterestSignal.match_id == match_id,
@@ -162,7 +185,7 @@ def _check_mutual_signal(db: Session, match_id: str) -> bool:
     # Vérifier signal des deux côtés
     senders = {s.sender_id for s in signals}
     if match.profile_a_id in senders and match.profile_b_id in senders:
-        # Déclencher la révélation mutuelle
+        # Déclencher la révélation mutuelle (un seul token partagé, atomique)
         reveal_token = secrets.token_urlsafe(48)
         for s in signals:
             s.status = RevealStatus.MUTUAL
@@ -187,11 +210,11 @@ def list_matches(
     limit: int = 20,
     offset: int = 0,
     min_score: float = 0,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Retourne les matchs du profil courant, triés par score décroissant."""
-    from .db.umbra_models import AnonymousProfile, Match, TrustScore
+    from db.umbra_models import AnonymousProfile, Match, TrustScore
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -233,10 +256,10 @@ def list_matches(
 @router_matches.get("/{match_id}")
 def get_match(
     match_id: str,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
-    from .db.umbra_models import AnonymousProfile, Match
+    from db.umbra_models import AnonymousProfile, Match
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -259,10 +282,10 @@ def get_match(
 def ignore_match(
     match_id: str,
     req: IgnoreRequest,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
-    from .db.umbra_models import AnonymousProfile, Match
+    from db.umbra_models import AnonymousProfile, Match
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -287,14 +310,14 @@ def ignore_match(
 @router_matches.post("/run")
 def run_matching(
     background_tasks: BackgroundTasks,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Déclenche le calcul de matching pour le profil courant.
     Asynchrone — retourne immédiatement, calcul en arrière-plan.
     """
-    from .db.umbra_models import AnonymousProfile
+    from db.umbra_models import AnonymousProfile
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -308,7 +331,7 @@ def run_matching(
 
 def _run_matching_task(profile_id: str, db: Session) -> None:
     """Tâche de matching en arrière-plan."""
-    from .db.umbra_models import (
+    from db.umbra_models import (
         AnonymousProfile, Match, TrustScore, AccountType
     )
     from .services.matching_engine import engine, profile_to_input, MIN_SCORE_THRESHOLD
@@ -406,15 +429,15 @@ def send_signal(
     match_id: str,
     req: SignalRequest,
     background_tasks: BackgroundTasks,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Signale l'intérêt pour ce match.
     Si l'autre partie a déjà signalé → révélation déclenchée immédiatement.
     Si pas de crédits pour les entreprises → erreur.
     """
-    from .db.umbra_models import (
+    from db.umbra_models import (
         AnonymousProfile, Match, InterestSignal, RevealStatus,
         AccountType, CreditBalance, TrustScore
     )
@@ -493,11 +516,11 @@ def send_signal(
 @router_signals.get("/{match_id}/signal-status")
 def get_signal_status(
     match_id: str,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Retourne l'état du protocole de révélation pour ce match."""
-    from .db.umbra_models import AnonymousProfile, Match, InterestSignal
+    from db.umbra_models import AnonymousProfile, Match, InterestSignal
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -529,11 +552,11 @@ def get_signal_status(
 @router_signals.delete("/{match_id}/signal", status_code=204)
 def withdraw_signal(
     match_id: str,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Retire le signal d'intérêt (uniquement si pas encore de révélation mutuelle)."""
-    from .db.umbra_models import AnonymousProfile, InterestSignal, RevealStatus
+    from db.umbra_models import AnonymousProfile, InterestSignal, RevealStatus
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -562,10 +585,10 @@ def withdraw_signal(
 @router_questions.get("/{match_id}/questions")
 def list_questions(
     match_id: str,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
-    from .db.umbra_models import AnonymousProfile, Match, InverseQuestion
+    from db.umbra_models import AnonymousProfile, Match, InverseQuestion
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -602,15 +625,15 @@ def list_questions(
 def ask_question(
     match_id: str,
     req: QuestionCreate,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Le candidat pose une question anonyme à l'entreprise.
     Maximum 3 questions par match.
     Uniquement avant la révélation mutuelle.
     """
-    from .db.umbra_models import (
+    from db.umbra_models import (
         AnonymousProfile, Match, InverseQuestion, AccountType, RevealStatus, InterestSignal
     )
 
@@ -669,11 +692,11 @@ def answer_question(
     match_id: str,
     question_id: str,
     req: QuestionAnswer,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """L'entreprise répond à une question du candidat."""
-    from .db.umbra_models import AnonymousProfile, Match, InverseQuestion, AccountType
+    from db.umbra_models import AnonymousProfile, Match, InverseQuestion, AccountType
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id

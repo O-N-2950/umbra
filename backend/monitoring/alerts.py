@@ -14,7 +14,7 @@ import logging
 from datetime import datetime
 from typing import Dict, Optional
 
-logger = logging.getLogger("matcho.alerts")
+logger = logging.getLogger("umbra.alerts")
 
 
 class AlertService:
@@ -190,7 +190,7 @@ class AlertService:
             resend.api_key = api_key
             
             resend.Emails.send({
-                "from": "MATCHO Monitor <noreply@matcho.digital>",
+                "from": "UMBRA Monitor <noreply@umbra.ch>",
                 "to": [self.admin_email],
                 "subject": subject,
                 "html": html,

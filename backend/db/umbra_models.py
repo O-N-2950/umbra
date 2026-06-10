@@ -126,6 +126,11 @@ class Account(Base):
     # Employeurs à exclure des matchs (protection candidat)
     employer_block_list = Column(JSON, default=list)
 
+    # Employeur ACTUEL du candidat (IDE). Injecté automatiquement dans la block-list
+    # à chaque matching : protège d'office le candidat contre un faux poste publié par
+    # son propre patron pour le débusquer en veille. C'est LE garde-fou anti-désanonymisation.
+    current_employer_ide = Column(String(15))
+
     is_active      = Column(Boolean, default=True)
     is_suspended   = Column(Boolean, default=False)
     suspended_at   = Column(DateTime)
@@ -594,7 +599,7 @@ class AuditLog(Base):
     resource_id  = Column(String(36))
     ip_hash      = Column(String(64))
     user_agent_hash = Column(String(64))
-    metadata     = Column(JSON, default=dict)
+    meta         = Column(JSON, default=dict)
     created_at   = Column(DateTime, default=func.now())
 
     __table_args__ = (

@@ -387,7 +387,7 @@ def upgrade() -> None:
         sa.Column("resource_id",     sa.String(36)),
         sa.Column("ip_hash",         sa.String(64)),
         sa.Column("user_agent_hash", sa.String(64)),
-        sa.Column("metadata",        sa.JSON, default=dict),
+        sa.Column("meta",            sa.JSON, default=dict),
         sa.Column("created_at",      sa.DateTime, server_default=sa.func.now()),
     )
     op.create_index("ix_audit_account", "audit_logs", ["account_id"])

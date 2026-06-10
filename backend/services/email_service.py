@@ -13,7 +13,7 @@ import logging
 from typing import Optional, Dict, Any
 from datetime import datetime
 
-logger = logging.getLogger("matcho.email")
+logger = logging.getLogger("umbra.email")
 
 
 class EmailService:
@@ -33,7 +33,7 @@ class EmailService:
     def __init__(self):
         # Lecon PEP's #1 : Kill switch par defaut = ACTIF (pas d'envoi)
         self.enabled = os.getenv("EMAIL_ENABLED", "false").lower() == "true"
-        self.from_email = os.getenv("EMAIL_FROM", "noreply@matcho.digital")
+        self.from_email = os.getenv("EMAIL_FROM", "noreply@umbra.ch")
         self.from_name = os.getenv("EMAIL_FROM_NAME", "MATCHO")
         self._sent_log: Dict[str, float] = {}
         

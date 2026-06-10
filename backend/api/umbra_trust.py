@@ -66,7 +66,7 @@ def my_passport(
 ):
     """Retourne le passeport de confiance complet du compte courant."""
     from .services.trust_service import trust_service
-    from .db.umbra_models import TrustEvent, CreditBalance
+    from db.umbra_models import TrustEvent, CreditBalance
 
     passport = trust_service.get_passport(db, account.id)
 
@@ -113,13 +113,13 @@ def my_passport(
 @router.get("/{display_id}/passport")
 def public_passport(
     display_id: str,
-    db: Session = Depends(lambda: None),
+    db: Session = Depends(get_db),
 ):
     """
     Passeport public d'un autre compte (visible par tous).
     Retourne uniquement les métriques publiques — jamais l'identité.
     """
-    from .db.umbra_models import AnonymousProfile, TrustScore
+    from db.umbra_models import AnonymousProfile, TrustScore
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.display_id == display_id
@@ -155,7 +155,7 @@ def confirm_hire(
     L'embauche n'est validée que si le candidat confirme aussi de son côté.
     Utilise la table hire_confirmations pour traquer les double confirmations.
     """
-    from .db.umbra_models import Match, InterestSignal, RevealStatus
+    from db.umbra_models import Match, InterestSignal, RevealStatus
     from .services.trust_service import trust_service
 
     # Vérifier que la révélation mutuelle a bien eu lieu
@@ -248,7 +248,7 @@ def my_credits(
     db: Session = Depends(get_db),
 ):
     """Solde de crédits et historique des 20 dernières transactions."""
-    from .db.umbra_models import CreditBalance, CreditTransaction
+    from db.umbra_models import CreditBalance, CreditTransaction
 
     balance = db.query(CreditBalance).filter(CreditBalance.account_id == account.id).first()
     if not balance:
@@ -348,7 +348,7 @@ def purchase_credits(
 async def stripe_webhook(
     request: Request,
     stripe_signature: Optional[str] = Header(None, alias="stripe-signature"),
-    db: Session = Depends(lambda: None),
+    db: Session = Depends(get_db),
 ):
     """
     Webhook Stripe — crédite le compte après paiement confirmé.
@@ -376,7 +376,7 @@ async def stripe_webhook(
         credits_count = int(metadata.get("credits", 0))
 
         if account_id and credits_count > 0:
-            from .db.umbra_models import CreditBalance, CreditTransaction
+            from db.umbra_models import CreditBalance, CreditTransaction
 
             balance = db.query(CreditBalance).filter(
                 CreditBalance.account_id == account_id

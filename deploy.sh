@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-INFOMANIAK_TOKEN="${INFOMANIAK_TOKEN:-uvGxaRxguScs9RMH0_lS_swPKilo3Vc2aex3ATgKiigRMsYB2zP8eOWNuIPN1nMKF3j30b6kthsQry_P}"
+INFOMANIAK_TOKEN="${INFOMANIAK_TOKEN:?INFOMANIAK_TOKEN requis}"
 JELASTIC_SERVICE_ID="10299"
 ACCOUNT_ID="1897366"
 JPS_URL="https://raw.githubusercontent.com/O-N-2950/umbra/main/manifest.jps"
@@ -165,7 +165,7 @@ if echo "$INSTALL_RESULT" | grep -q "success"; then
       echo ""
       echo "Configuration GitHub Actions variable JELASTIC_APP_URL..."
       curl -sf -X PUT \
-        -H "Authorization: token ${GITHUB_TOKEN:-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}" \
+        -H "Authorization: token ${GITHUB_TOKEN:?GITHUB_TOKEN requis}" \
         -H "Content-Type: application/json" \
         -d "{\"name\": \"JELASTIC_APP_URL\", \"value\": \"$APP_URL\"}" \
         "https://api.github.com/repos/O-N-2950/umbra/actions/variables/JELASTIC_APP_URL" \

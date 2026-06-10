@@ -158,7 +158,7 @@ def _decode_jwt(token: str) -> dict:
 
 def get_db():
     """FastAPI dependency — à overrider avec la vraie session."""
-    from .db.session import SessionLocal
+    from db.session import SessionLocal
     db = SessionLocal()
     try:
         yield db
@@ -177,7 +177,7 @@ def get_current_account(
     if payload.get("type") != "access":
         raise HTTPException(status_code=401, detail="Access token requis.")
 
-    from .db.umbra_models import Account
+    from db.umbra_models import Account
     account = db.query(Account).filter(Account.id == payload["sub"]).first()
     if not account or not account.is_active:
         raise HTTPException(status_code=401, detail="Compte introuvable ou désactivé.")
@@ -194,7 +194,7 @@ def get_current_profile(
     db: Session = Depends(get_db),
 ):
     """Dependency : retourne le profil anonyme du compte courant."""
-    from .db.umbra_models import AnonymousProfile
+    from db.umbra_models import AnonymousProfile
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
     ).first()
@@ -214,12 +214,12 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     Crée un compte et envoie le magic link d'activation.
     Idempotent : si l'email existe déjà → renvoie juste le magic link.
     """
-    from .db.umbra_models import Account, AccountType, CreditBalance, TrustScore
+    from db.umbra_models import Account, AccountType, CreditBalance, TrustScore
 
     existing = db.query(Account).filter(Account.email == req.email).first()
     if existing:
         # Email déjà inscrit → magic link de connexion
-        token = _create_magic_token(existing.id)
+        token = _create_magic_token(existing.id, db)
         _send_magic_link(existing.email, token, "login")
         return {"message": "Magic link envoyé à votre adresse email.", "action": "login"}
 
@@ -242,7 +242,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
     db.commit()
 
-    token = _create_magic_token(account.id)
+    token = _create_magic_token(account.id, db)
     _send_magic_link(account.email, token, "register")
 
     logger.info("account registered: %s (%s)", account.id[:8], req.account_type)
@@ -255,12 +255,12 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 @router.post("/login")
 def login(req: LoginRequest, db: Session = Depends(get_db)):
     """Envoie un magic link à l'adresse email fournie."""
-    from .db.umbra_models import Account
+    from db.umbra_models import Account
 
     account = db.query(Account).filter(Account.email == req.email).first()
     # Réponse identique qu'il existe ou non (anti-enumeration)
     if account and account.is_active:
-        token = _create_magic_token(account.id)
+        token = _create_magic_token(account.id, db)
         _send_magic_link(account.email, token, "login")
     logger.info("login magic link requested: %s", req.email[:3] + "***")
     return {"message": "Si votre email est enregistré, vous recevrez un lien de connexion."}
@@ -275,7 +275,7 @@ def verify(
     Valide le magic token et retourne les JWTs.
     Peut être appelé depuis le lien email : /auth/verify?token=xxx
     """
-    from .db.umbra_models import Account, AnonymousProfile
+    from db.umbra_models import Account, AnonymousProfile
 
     account_id = _consume_magic_token(token)
     if not account_id:
@@ -314,7 +314,7 @@ def verify(
 @router.post("/refresh", response_model=TokenResponse)
 def refresh_token(req: RefreshRequest, db: Session = Depends(get_db)):
     """Renouvelle les tokens depuis un refresh token valide."""
-    from .db.umbra_models import Account, AnonymousProfile
+    from db.umbra_models import Account, AnonymousProfile
 
     payload = _decode_jwt(req.refresh_token)
     if payload.get("type") != "refresh":
@@ -339,7 +339,7 @@ def refresh_token(req: RefreshRequest, db: Session = Depends(get_db)):
 @router.get("/me")
 def me(account=Depends(get_current_account), db: Session = Depends(get_db)):
     """Retourne les infos du compte courant (sans données sensibles)."""
-    from .db.umbra_models import AnonymousProfile, TrustScore
+    from db.umbra_models import AnonymousProfile, TrustScore
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id

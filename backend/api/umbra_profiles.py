@@ -24,6 +24,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from api.umbra_auth import get_current_account, get_db
 
 logger = logging.getLogger("umbra.profiles")
 router = APIRouter(prefix="/profiles", tags=["profiles"])
@@ -88,7 +89,7 @@ def _postal_to_zone_and_geo(postal_code: str) -> tuple[str, str, Optional[float]
     Convertit un code postal en zone (4 chiffres), label région,
     et coordonnées anonymisées (centroïde + décalage aléatoire).
     """
-    from .db.seed_data import get_postal_centroid, SWISS_POSTAL_ZONES
+    from db.seed_data import get_postal_centroid, SWISS_POSTAL_ZONES
 
     zone = postal_code[:4]
     # Trouver la région
@@ -272,14 +273,14 @@ def _serialize_profile(profile, trust_score=None) -> dict:
 @router.post("/", status_code=201)
 def create_profile(
     req: ProfileCreate,
-    account=Depends(lambda: None),   # override: get_current_account
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Crée le profil anonyme lors de l'onboarding.
     Un seul profil par compte.
     """
-    from .db.umbra_models import (
+    from db.umbra_models import (
         AnonymousProfile, Sector, ProfileMode, CompanyMode, TransportMode, AccountType
     )
     from .api.umbra_auth import get_current_account, get_db
@@ -330,10 +331,10 @@ def create_profile(
 
 @router.get("/me")
 def get_my_profile(
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
-    from .db.umbra_models import AnonymousProfile, TrustScore
+    from db.umbra_models import AnonymousProfile, TrustScore
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
     ).options(
@@ -348,10 +349,10 @@ def get_my_profile(
 @router.put("/me")
 def update_profile(
     req: ProfileUpdate,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
-    from .db.umbra_models import AnonymousProfile, Sector, TransportMode
+    from db.umbra_models import AnonymousProfile, Sector, TransportMode
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -388,11 +389,11 @@ def update_profile(
 @router.put("/me/mode")
 def update_mode(
     req: ModeUpdate,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Change le mode veille/actif ou discreet/public."""
-    from .db.umbra_models import AnonymousProfile, ProfileMode, CompanyMode
+    from db.umbra_models import AnonymousProfile, ProfileMode, CompanyMode
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -415,15 +416,15 @@ def update_mode(
 @router.post("/me/culture")
 def submit_culture_quiz(
     req: CultureQuizSubmit,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Soumet les réponses du quiz culturel.
     Calcule le vecteur 6D et le persiste.
     Peut être re-soumis (mise à jour).
     """
-    from .db.umbra_models import AnonymousProfile, CultureProfile
+    from db.umbra_models import AnonymousProfile, CultureProfile
 
     if len(req.answers) < 5:
         raise HTTPException(status_code=400, detail="5 réponses requises (indices 0-4).")
@@ -470,11 +471,11 @@ def submit_culture_quiz(
 
 @router.get("/me/skills/available")
 def get_available_skills(
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """Retourne les compétences disponibles pour le secteur du profil."""
-    from .db.umbra_models import AnonymousProfile, Skill
+    from db.umbra_models import AnonymousProfile, Skill
 
     profile = db.query(AnonymousProfile).filter(
         AnonymousProfile.account_id == account.id
@@ -503,14 +504,14 @@ def get_available_skills(
 @router.post("/me/skills")
 def update_skills(
     req: SkillsUpdate,
-    account=Depends(lambda: None),
-    db: Session = Depends(lambda: None),
+    account=Depends(get_current_account),
+    db: Session = Depends(get_db),
 ):
     """
     Met à jour les compétences sélectionnées.
     Remplace l'ensemble existant (non-destructif pour verified=True).
     """
-    from .db.umbra_models import AnonymousProfile, ProfileSkill, Skill
+    from db.umbra_models import AnonymousProfile, ProfileSkill, Skill
 
     if len(req.skill_ids) < 2:
         raise HTTPException(status_code=400, detail="Minimum 2 compétences requises.")

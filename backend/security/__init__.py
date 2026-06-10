@@ -37,7 +37,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 # ── Logging ────────────────────────────────────────────
 
-logger = logging.getLogger("matcho.security")
+logger = logging.getLogger("umbra.security")
 logger.setLevel(logging.INFO)
 
 # Log format sans données sensibles
@@ -598,7 +598,7 @@ class FieldEncryptor:
                 from cryptography.fernet import Fernet
                 # Derive a proper Fernet key from our secret
                 import base64
-                dk = hashlib.pbkdf2_hmac("sha256", self.key.encode(), b"matcho-salt-2026", 100000, dklen=32)
+                dk = hashlib.pbkdf2_hmac("sha256", self.key.encode(), b"umbra-salt-2026-pep-swiss", 100000, dklen=32)
                 self._fernet = Fernet(base64.urlsafe_b64encode(dk))
             except ImportError:
                 logger.warning("⚠️ cryptography non installé — chiffrement désactivé")

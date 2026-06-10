@@ -27,7 +27,7 @@ from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
 from enum import Enum
 
-logger = logging.getLogger("matcho.health")
+logger = logging.getLogger("umbra.health")
 
 
 class ServiceStatus(str, Enum):

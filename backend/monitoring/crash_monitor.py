@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 
 from monitoring.health_check import HealthChecker, ServiceStatus
 
-logger = logging.getLogger("matcho.monitor")
+logger = logging.getLogger("umbra.monitor")
 
 
 @dataclass

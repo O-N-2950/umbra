@@ -430,6 +430,22 @@ engine = MatchingEngine()
 
 # ── UTILITAIRES API ───────────────────────────────────────────────────────────
 
+def _merge_block_list(account) -> list[str]:
+    """
+    Construit la liste effective des IDE bloqués pour un candidat :
+    la block-list explicite + l'employeur ACTUEL déclaré.
+
+    Garantie anti-désanonymisation : même si le candidat oublie d'ajouter son patron
+    à sa liste, son employeur actuel est exclu d'office de tous ses matchs. Un employeur
+    ne peut donc PAS publier un faux poste pour identifier ses propres salariés en veille.
+    """
+    blocked = list(account.employer_block_list or [])
+    current = getattr(account, "current_employer_ide", None)
+    if current and current not in blocked:
+        blocked.append(current)
+    return blocked
+
+
 def profile_to_input(profile, account, trust_score_obj, market_tension: float = 50.0) -> ProfileInput:
     """
     Convertit un AnonymousProfile SQLAlchemy en ProfileInput pour le moteur.
@@ -468,7 +484,7 @@ def profile_to_input(profile, account, trust_score_obj, market_tension: float = 
         notice_days=profile.notice_days or 0,
         trust_score=trust_score_obj.score if trust_score_obj else 3.0,
         trust_grade=trust_score_obj.grade.value if trust_score_obj else "standard",
-        employer_block_ids=account.employer_block_list or [],
+        employer_block_ids=_merge_block_list(account),
         company_ide=account.ide_number,
         is_shadow=(profile.mode.value == "shadow"),
         hire_rate_pct=trust_score_obj.hire_rate_pct if trust_score_obj else 50.0,

@@ -574,7 +574,7 @@ def create_auth_routes(auth_service: AuthService):
         )
         
         # Construire le lien
-        base_url = os.getenv("MATCHO_FRONTEND_URL", "https://app.matcho.digital")
+        base_url = os.getenv("UMBRA_FRONTEND_URL", "https://umbra.ch")
         magic_url = f"{base_url}/auth/verify?token={token}"
         
         # Envoyer l'email
@@ -673,7 +673,7 @@ def create_auth_routes(auth_service: AuthService):
         new_user, token = result
         
         # Envoyer l'email d'invitation
-        base_url = os.getenv("MATCHO_FRONTEND_URL", "https://app.matcho.digital")
+        base_url = os.getenv("UMBRA_FRONTEND_URL", "https://umbra.ch")
         invite_url = f"{base_url}/auth/verify?token={token}&invite=true"
         
         if auth_service.email_service:

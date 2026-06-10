@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from db.session import get_db
+from api.umbra_auth import get_current_account
 
 logger = logging.getLogger("umbra.credits")
 
@@ -67,7 +68,7 @@ def get_pricing():
 @router.get("/balance")
 def get_balance(
     db: Session = Depends(get_db),
-    credentials=Depends(lambda: None),  # remplacé si auth activée
+    account=Depends(get_current_account),
 ):
     """Solde de crédits — route préparée."""
     return {"balance": 5, "model": "free_launch", "flag_facturation": FLAG_FACTURATION}
