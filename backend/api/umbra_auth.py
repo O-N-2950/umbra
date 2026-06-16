@@ -359,42 +359,103 @@ def me(account=Depends(get_current_account), db: Session = Depends(get_db)):
     }
 
 
-# ── EMAIL (stub — brancher Resend en prod) ────────────────────────────────────
+# ── EMAIL (magic link : SMTP Infomaniak → Resend → log) ──────────────────────
+
+def _brand() -> str:
+    return os.getenv("BRAND_NAME", "Merito")
+
+
+def _send_via_smtp(to: str, subject: str, html: str) -> None:
+    """Envoi via SMTP (Infomaniak). Lève une exception en cas d'échec."""
+    import smtplib
+    import ssl
+    from email.mime.text import MIMEText
+    from email.utils import formataddr
+
+    host = os.environ["SMTP_HOST"]
+    port = int(os.getenv("SMTP_PORT", "465"))
+    user = os.environ["SMTP_USER"]
+    pwd = os.environ["SMTP_PASSWORD"]
+    from_addr = os.getenv("SMTP_FROM", user)
+    from_name = os.getenv("SMTP_FROM_NAME", _brand())
+
+    msg = MIMEText(html, "html", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = formataddr((from_name, from_addr))
+    msg["To"] = to
+
+    ctx = ssl.create_default_context()
+    if port == 465:
+        with smtplib.SMTP_SSL(host, port, context=ctx, timeout=20) as s:
+            s.login(user, pwd)
+            s.sendmail(from_addr, [to], msg.as_string())
+    else:
+        with smtplib.SMTP(host, port, timeout=20) as s:
+            s.ehlo()
+            s.starttls(context=ctx)
+            s.ehlo()
+            s.login(user, pwd)
+            s.sendmail(from_addr, [to], msg.as_string())
+
 
 def _send_magic_link(email: str, token: str, action: str) -> None:
     """
     Envoie le magic link par email.
-    En dev : log le lien. En prod : Resend API.
+    Priorité : SMTP (Infomaniak) → Resend → log (dev / non configuré).
+    Un échec d'envoi n'interrompt jamais le flux d'inscription/connexion.
     """
     base_url = os.getenv("APP_URL", "http://localhost:3000")
     link = f"{base_url}/auth/verify?token={token}"
+    brand = _brand()
+    subject = (
+        f"Votre lien de connexion {brand}" if action == "login"
+        else f"Bienvenue sur {brand}"
+    )
+    html = _magic_link_html(link, action)
 
-    if os.getenv("ENV", "dev") == "dev":
-        logger.info("🔗 MAGIC LINK [%s] → %s", action, link)
+    # Kill switch : aucun envoi réel tant que EMAIL_ENABLED != true
+    if os.getenv("EMAIL_ENABLED", "false").lower() != "true":
+        logger.info("🔗 [email off] MAGIC LINK [%s] → %s", action, link)
         return
 
-    try:
-        import resend
-        resend.api_key = os.getenv("RESEND_API_KEY")
-        subject = "Votre lien de connexion UMBRA" if action == "login" else "Bienvenue sur UMBRA"
-        resend.Emails.send({
-            "from":    "UMBRA <auth@umbra.work>",
-            "to":      [email],
-            "subject": subject,
-            "html":    _magic_link_html(link, action),
-        })
-        logger.info("magic link email sent: %s", email[:3] + "***")
-    except Exception as e:
-        logger.error("failed to send magic link email: %s", e)
+    # 1) SMTP Infomaniak (prioritaire si configuré)
+    if os.getenv("SMTP_HOST"):
+        try:
+            _send_via_smtp(email, subject, html)
+            logger.info("magic link SMTP envoyé: %s", email[:3] + "***")
+            return
+        except Exception as e:
+            logger.error("échec SMTP magic link (%s): %s", email[:3] + "***", e)
+
+    # 2) Resend (fallback)
+    if os.getenv("RESEND_API_KEY"):
+        try:
+            import resend
+            resend.api_key = os.getenv("RESEND_API_KEY")
+            resend.Emails.send({
+                "from": f"{brand} <{os.getenv('SMTP_FROM', 'auth@umbra.work')}>",
+                "to": [email],
+                "subject": subject,
+                "html": html,
+            })
+            logger.info("magic link Resend envoyé: %s", email[:3] + "***")
+            return
+        except Exception as e:
+            logger.error("échec Resend magic link: %s", e)
+
+    # 3) Rien configuré (ou DNS pas prêt) → log
+    logger.info("🔗 MAGIC LINK [%s] → %s", action, link)
 
 
 def _magic_link_html(link: str, action: str) -> str:
+    brand = _brand()
     label = "Me connecter" if action == "login" else "Activer mon compte"
+    verb = "vous connecter" if action == "login" else "activer votre compte"
     return f"""
     <div style="background:#05080e;color:#edeae4;font-family:sans-serif;padding:48px;max-width:480px;margin:0 auto;">
-      <div style="font-family:Georgia,serif;font-size:28px;color:#d97b3a;letter-spacing:0.2em;margin-bottom:32px;">UMBRA</div>
+      <div style="font-family:Georgia,serif;font-size:28px;color:#d97b3a;letter-spacing:0.2em;margin-bottom:32px;">{brand}</div>
       <p style="font-size:16px;line-height:1.7;color:#7a8da8;margin-bottom:32px;">
-        Cliquez sur le bouton ci-dessous pour {"vous connecter" if action == "login" else "activer votre compte"}.<br>
+        Cliquez sur le bouton ci-dessous pour {verb}.<br>
         Ce lien est valable <strong style="color:#edeae4;">15 minutes</strong>.
       </p>
       <a href="{link}" style="display:inline-block;background:#d97b3a;color:#05080e;padding:14px 36px;text-decoration:none;font-weight:500;font-size:15px;">{label} →</a>
