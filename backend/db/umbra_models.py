@@ -28,6 +28,22 @@ from sqlalchemy import (
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
 
+
+def PgEnum(enum_cls, **kw):
+    """
+    Enum SQLAlchemy qui persiste la VALEUR de l'enum (ex: "candidate"), pas son
+    NOM (ex: "CANDIDATE"). Sans cela, SQLAlchemy stocke le nom, que l'enum
+    PostgreSQL (strict) rejette — alors que SQLite (tolérant) l'accepte, d'où des
+    500 en prod invisibles en dev. values_callable garantit le même comportement
+    sur les deux moteurs.
+    """
+    return Enum(
+        enum_cls,
+        values_callable=lambda e: [member.value for member in e],
+        **kw,
+    )
+
+
 Base = declarative_base()
 
 
@@ -105,7 +121,7 @@ class Account(Base):
     __tablename__ = "accounts"
 
     id             = Column(String(36), primary_key=True, default=gen_uuid)
-    account_type   = Column(Enum(AccountType), nullable=False)
+    account_type   = Column(PgEnum(AccountType), nullable=False)
 
     email          = Column(String(200), unique=True, nullable=False, index=True)
     phone          = Column(String(30))
@@ -165,15 +181,15 @@ class AnonymousProfile(Base):
     display_id   = Column(String(10), unique=True, default=gen_anon_id)
     account_id   = Column(String(36), ForeignKey("accounts.id"), nullable=False, unique=True)
 
-    profile_type = Column(Enum(AccountType), nullable=False)
-    mode         = Column(Enum(ProfileMode), default=ProfileMode.SHADOW)
-    company_mode = Column(Enum(CompanyMode), default=CompanyMode.DISCREET)
+    profile_type = Column(PgEnum(AccountType), nullable=False)
+    mode         = Column(PgEnum(ProfileMode), default=ProfileMode.SHADOW)
+    company_mode = Column(PgEnum(CompanyMode), default=CompanyMode.DISCREET)
 
     # Zone géographique (jamais adresse exacte — centroïde + décalage aléatoire 2-5km)
     postal_zone  = Column(String(4))
     region_label = Column(String(100))
     mobility_km  = Column(Integer, default=50)
-    transport_mode = Column(Enum(TransportMode), default=TransportMode.CAR)
+    transport_mode = Column(PgEnum(TransportMode), default=TransportMode.CAR)
     geo_lat      = Column(Float)
     geo_lon      = Column(Float)
 
@@ -373,7 +389,7 @@ class InterestSignal(Base):
     sender_id   = Column(String(36), ForeignKey("anonymous_profiles.id"), nullable=False)
     receiver_id = Column(String(36), ForeignKey("anonymous_profiles.id"), nullable=False)
 
-    status     = Column(Enum(RevealStatus), default=RevealStatus.PENDING)
+    status     = Column(PgEnum(RevealStatus), default=RevealStatus.PENDING)
     sent_at    = Column(DateTime, default=func.now())
     expires_at = Column(DateTime)
 
@@ -424,7 +440,7 @@ class TrustEvent(Base):
 
     id           = Column(String(36), primary_key=True, default=gen_uuid)
     account_id   = Column(String(36), ForeignKey("accounts.id"), nullable=False)
-    event_type   = Column(Enum(TrustEventType), nullable=False)
+    event_type   = Column(PgEnum(TrustEventType), nullable=False)
     points_delta = Column(Float, nullable=False)
     reference_id = Column(String(36))
     note         = Column(String(300))
@@ -444,7 +460,7 @@ class TrustScore(Base):
 
     account_id = Column(String(36), ForeignKey("accounts.id"), primary_key=True)
     score      = Column(Float, default=3.0)
-    grade      = Column(Enum(TrustGrade), default=TrustGrade.STANDARD)
+    grade      = Column(PgEnum(TrustGrade), default=TrustGrade.STANDARD)
 
     contacts_total   = Column(Integer, default=0)
     interviews_total = Column(Integer, default=0)
