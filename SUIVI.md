@@ -4,6 +4,50 @@
 > Le plus récent en haut. Pour l'état actuel complet : voir la section de tête de CONTEXT.md.
 
 ═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (soir) — MAGIC LINK SMTP + REBRAND MERITO + STABILISATION
+═══════════════════════════════════════════════════════════════════════
+
+### Objectif
+Brancher le magic link sur le SMTP Infomaniak (contact@merito.ch), choisir un slogan pour
+le nouveau domaine merito.ch, confirmer register=201 en prod.
+
+### Réalisé
+- **Register 500 → 201** : cause = uvicorn pré-fix collé au port 3000 (fix PgEnum sur disque
+  mais pas chargé). Pas un bug de code. Teardown PAR PORT + relance launcher.
+- **DATABASE_URL persisté** (avec mot de passe) dans /.jelenv — la session précédente l'avait
+  corrigé en mémoire seulement → recassait à chaque restart.
+- **Magic link SMTP** : refonte `_send_magic_link` (SMTP-first → Resend → log) + `_send_via_smtp`
+  (smtplib 465 SSL / 587 STARTTLS), branding `BRAND_NAME=Merito`. Commit d9783f8, poussé + déployé.
+- **Variables prod** : SMTP_*, EMAIL_ENABLED=true, APP_URL, BRAND_NAME=Merito, ENV=production.
+- **DNS merito.ch publié** pendant la session (NS ns11/ns12.infomaniak.ch, MX mta-gw.infomaniak.ch)
+  → **envoi SMTP réel confirmé** (« OK SMTP_SSL 465 → contact@merito.ch »). Magic link de bout en bout.
+- **Slogan retenu** : « Les compétences avant l'identité. » (mécanisme d'anonymat, colle au nom Merito,
+  = engagement nLPD). Secondaire : « Le recrutement sans préjugés. »
+- **Nettoyage** : parasite uvicorn :8000 tué ; 4 comptes de test purgés (prod = 0 compte).
+
+### 🔑 PIÈGES RÉSOLUS / APPRIS
+9. **`AddContainerEnvVars` n'écrase PAS une clé existante** (upsert sur clés nouvelles seulement).
+   Modifier une variable existante (ex. DATABASE_URL) → éditer /.jelenv directement.
+10. **`RestartNodeById` casse l'app** : systemd `nodejs.service` → `npm start`, mais package.json
+    de ROOT = démo whiteboard (pas de script start) → "Failed to start". Le launcher tourne en
+    MANUEL détaché. NE PAS faire restartnodebyid ; relancer via `setsid node server.js`
+    (un shell jexec hérite déjà des vars Jelastic à jour).
+11. **Workers uvicorn orphelins** : `pkill -f uvicorn` les rate (cmdline = multiprocessing.spawn).
+    Toujours tuer PAR PORT : `fuser -k -9 3000/tcp` (+ 8000).
+12. **SMTP bloqué depuis la sandbox Claude** (egress filtre les ports mail) → tester depuis le node.
+13. **DNS domaine fraîchement acheté** : merito.ch était au registre .ch sans zone publiée
+    → SMTP « Sender address rejected: Domain not found ». Résolu une fois la zone publiée.
+
+### Décisions
+- **Rebrand vers Merito** (umbra.ch pris). Domaine merito.ch ; identité d'envoi contact@merito.ch.
+- Magic link = SMTP Infomaniak prioritaire, Resend gardé en fallback.
+
+### Prochaine session
+LOT 4 (pricing serveur + Stripe + preuve d'embauche). Durcir launcher (anti-squat port + persistance).
+Déliverabilité merito.ch : SPF/DKIM/DMARC (action Olivier).
+
+
+═══════════════════════════════════════════════════════════════════════
 ## Session 2026-06-16 — JELASTIC PROD LIVE + LOT 1-3 + best practices PLACIO/Tournepage
 ═══════════════════════════════════════════════════════════════════════
 

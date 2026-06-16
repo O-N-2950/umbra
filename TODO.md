@@ -4,7 +4,17 @@
 
 ---
 
-## ✅ FAIT (cette session)
+## ✅ FAIT — Session 2026-06-16 (SMTP magic link + Merito + stabilisation prod)
+
+- [x] **Register 500 → 201** : cause = uvicorn pré-fix resté collé au port 3000 (fix PgEnum sur disque mais pas chargé en mémoire). Pas un bug de code. Teardown PAR PORT + relance launcher. Candidat/entreprise/idempotence = 201, /health healthy.
+- [x] **DATABASE_URL persisté** (avec mot de passe) dans `/.jelenv` — l'ancienne session ne l'avait corrigé qu'en mémoire (recassait à chaque restart).
+- [x] **Magic link via SMTP Infomaniak** (`contact@merito.ch`) : `_send_magic_link` refait en SMTP-first → fallback Resend → log ; `_send_via_smtp` (smtplib 465 SSL / 587 STARTTLS) ; kill switch respecté ; branding `BRAND_NAME=Merito`. Commit `d9783f8`, poussé + déployé.
+- [x] **Variables d'env prod** : SMTP_*, EMAIL_ENABLED=true, APP_URL, BRAND_NAME=Merito, ENV=production.
+- [x] **DNS merito.ch publié** (NS ns11/ns12.infomaniak.ch, MX mta-gw.infomaniak.ch) → **envoi SMTP réel OK de bout en bout** (magic link fonctionnel).
+- [x] **Rebrand UMBRA → Merito** (umbra.ch pris → merito.ch). Slogan retenu : « Les compétences avant l'identité. »
+- [x] **Nettoyage** : parasite uvicorn :8000 tué ; 4 comptes de test purgés (prod = 0 compte résiduel).
+
+## ✅ FAIT (sessions précédentes)
 
 - [x] **LOT 1 — Fondations** : bug `metadata`→`meta` (migrations rejouables base vierge)
 - [x] **LOT 1** : 18 routes `Depends(lambda:None)` → auth réelle (`get_current_account`/`get_db`)
@@ -22,12 +32,11 @@
 
 ---
 
-## 🔴 P0 — À VÉRIFIER IMMÉDIATEMENT (prochaine session)
+## 🔴 P0 — PROCHAINE SESSION
 
-- [ ] **Vérifier register en prod** après déploiement du fix PgEnum (commit 71250f1) :
-      `curl -X POST https://umbra-prod.jcloud-ver-jpc.ik-server.com/api/v1/auth/register`
-      → doit retourner 201 (et non 500). Si le node n'a pas le code à jour : re-cloner +
-      restartservices (voir CONTEXT.md mécanisme déploiement).
+- [x] ~~Vérifier register prod~~ → **FAIT**, 201 confirmé (candidat/entreprise/idempotence), /health healthy.
+- [ ] **Robustesse launcher** : `server.js` doit tuer tout squatteur du port 3000 avant de spawn (`fuser -k 3000/tcp`) pour éviter la boucle « Address already in use ». Persistance reboot fragile : systemd `nodejs.service` cassé (package.json ROOT = démo whiteboard, pas de script `start`) → le launcher tourne en **manuel détaché**. **NE PAS** faire `restartnodebyid` (casse l'app) ; relancer via `setsid node server.js`. À durcir (pm2 + `pm2 save`, ou vrai script start).
+- [ ] **LOT 4 (business)** ci-dessous = priorité n°1.
 
 ## 🟠 P1 — BUSINESS (ce qui encaisse l'argent) — LOT 4
 
@@ -50,7 +59,7 @@
 
 - [ ] Front unique Next.js depuis `umbra-v3-pricing.jsx` branché sur FastAPI réel
 - [ ] Supprimer `client/src` (tRPC mort) ; migrer cv-analyser + smart-onboarding
-- [ ] CORS : aligner `ALLOWED_ORIGINS` sur domaine réel (umbra.ch/jcloud)
+- [ ] CORS : aligner `ALLOWED_ORIGINS` sur **merito.ch** (+ jcloud) ; quand un A/CNAME merito.ch → Jelastic existera, basculer `APP_URL` sur https://merito.ch
 - [ ] Chiffrement PII au repos AES-256-GCM (pattern Tournepage, classes A/B/C/D)
 - [ ] Stockage CV souverain S3 Infomaniak (`s3.pub1.infomaniak.cloud`, runbook Tournepage)
 - [ ] Immuabilité trust_events (permissions DB ou chaînage par hash) + `recompute_from_history()`
@@ -64,5 +73,7 @@
 
 ## ⚠️ ACTION OLIVIER (hors code)
 
+- [ ] **Déliverabilité merito.ch** : ajouter SPF (`v=spf1 include:spf.infomaniak.ch ~all`), DKIM et DMARC dans la zone DNS Infomaniak. L'envoi MARCHE déjà ; c'est du durcissement anti-spam pour que les magic links n'atterrissent pas en indésirables.
+- [ ] **(Optionnel) Site sur merito.ch** : ajouter un A/CNAME merito.ch → environnement Jelastic si le site doit vivre sur merito.ch (aujourd'hui seul le mail est configuré, pas de A). Me prévenir pour aligner `APP_URL` + CORS.
 - [ ] **Révoquer** l'ancien token GitHub exposé `<ancien token GitHub exposé — commençant par ghp_BkM4, présent dans 2 vieux commits>`
       (Settings → Developer settings → Personal access tokens)

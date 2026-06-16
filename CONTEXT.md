@@ -5,6 +5,23 @@
 > L'historique des sessions 3 à 7 est conservé plus bas pour référence.
 
 ═══════════════════════════════════════════════════════════════════════
+## 🟢 MAJ 2026-06-16 (soir) — MERITO + MAGIC LINK SMTP OPÉRATIONNEL
+═══════════════════════════════════════════════════════════════════════
+
+- **REBRAND : UMBRA → Merito.** Domaine public = **merito.ch** (umbra.ch était pris).
+  Slogan retenu : **« Les compétences avant l'identité. »** Branding piloté par `BRAND_NAME=Merito`.
+- **Register prod = 201** (le 500 venait d'un uvicorn pré-fix collé au port 3000, pas du code).
+- **`DATABASE_URL` persisté avec mot de passe** dans `/.jelenv` (avant : corrigé en mémoire seulement).
+- **Magic link branché sur SMTP Infomaniak** (`contact@merito.ch`) : SMTP-first → fallback Resend → log.
+  Commit `d9783f8`. Variables prod : `SMTP_*`, `EMAIL_ENABLED=true`, `APP_URL`, `BRAND_NAME`, `ENV=production`.
+- **DNS merito.ch publié** (NS ns11/ns12.infomaniak.ch, MX mta-gw.infomaniak.ch) → **envoi mail OK de bout en bout**.
+  Reste (action Olivier) : SPF/DKIM/DMARC (anti-spam) ; A/CNAME merito.ch → Jelastic si le site doit vivre sur merito.ch.
+- **Pièges clés** : `AddContainerEnvVars` n'upsert pas les clés existantes (éditer `/.jelenv`) ;
+  ne PAS `restartnodebyid` (systemd cassé, launcher manuel) → relancer `setsid node server.js` ;
+  tuer les uvicorn PAR PORT (`fuser -k 3000/tcp`), pas par `pkill -f uvicorn`.
+- **Prochaine priorité : LOT 4** (pricing serveur + Stripe + preuve d'embauche).
+
+═══════════════════════════════════════════════════════════════════════
 ## 🟢 ÉTAT ACTUEL — 2026-06-16 (Session Jelastic + LOT 1-3 + PROD LIVE)
 ═══════════════════════════════════════════════════════════════════════
 
