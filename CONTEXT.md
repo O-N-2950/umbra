@@ -1,6 +1,118 @@
 # UMBRA — Contexte Projet
 
-> Fichier mis à jour automatiquement à chaque session. Sert de mémoire persistante entre les conversations.
+> Fichier mis à jour à chaque session. Mémoire persistante entre les conversations.
+> ⚠️ LIRE CETTE SECTION DE TÊTE EN PREMIER — c'est l'état réel le plus récent.
+> L'historique des sessions 3 à 7 est conservé plus bas pour référence.
+
+═══════════════════════════════════════════════════════════════════════
+## 🟢 ÉTAT ACTUEL — 2026-06-16 (Session Jelastic + LOT 1-3 + PROD LIVE)
+═══════════════════════════════════════════════════════════════════════
+
+### EN UNE PHRASE
+UMBRA (plateforme de recrutement anonyme suisse, PEP's Swiss SA / Groupe NEO) est
+**EN PRODUCTION sur Jelastic Infomaniak (Genève, Suisse)**, API 100% fonctionnelle,
+base PostgreSQL connectée. Reste : LOT 4 (Stripe/pricing serveur), LOT 5 (viral),
+front consolidé, et branchement Hunteed.
+
+### ✅ URL PROD LIVE
+- **https://umbra-prod.jcloud-ver-jpc.ik-server.com** (Jelastic Infomaniak, Genève 🇨🇭)
+- `/ping` → 200 `{"ok":true}` | `/health` → 200 healthy (DB ok) | `/app` → 200 (landing)
+- `/api/v1/sectors` → 200 | `/api/v1/matches/` → 401 (protégé) | register → 201
+
+### 🏗 INFRA JELASTIC (production) — paramètres exacts
+- Endpoint API Jelastic : `https://app.jpc.infomaniak.com/1.0/{path}` + `appid=cluster` + `session=<JELASTIC_TOKEN>`
+- Env : `umbra-prod` | région `user2_region` (jcloud-ver-jpc) | status running | SSL actif
+- Node CP (app) : **id 206538**, type `nodejs`, **Python 3.9.25** (pip installé via ensurepip)
+- Node DB : **id 206539**, PostgreSQL 18.4, IP interne **10.101.5.59:5432**
+  - DB `umbra` créée, user `webadmin`, **password `<password PostgreSQL: récupérer via .pgpass du node db 206539>`**
+  - `DATABASE_URL=postgresql://webadmin:<password>@10.101.5.59:5432/umbra`
+  - 19 tables, 3 migrations Alembic appliquées (0001, 0002, 0003)
+- **MÉCANISME DE DÉPLOIEMENT (CLÉ — appris de PLACIO)** :
+  - Le node nodejs Jelastic route le trafic public vers le **PORT 3000** (PAS 80, PAS 8000)
+  - Au boot, le node lance `npm start` → `node /home/jelastic/ROOT/server.js`
+  - `server.js` est un **lanceur** qui spawn `uvicorn umbra_main:app --port 3000`
+  - Le code UMBRA vit dans `/home/jelastic/umbra/backend/` (cloné depuis GitHub main)
+  - Après modif : `restartservices` (groupe cp) reconnecte le SLB au port 3000
+  - ⚠️ La variable `PORT` doit valoir **3000** (sinon uvicorn écoute ailleurs → 502)
+- Sandbox Claude : **réseau OUVERT vers Jelastic** cette session (avant il était bloqué).
+  Si re-bloqué, passer par GitHub Actions (workflow `jelastic-deploy.yml`).
+
+### 🔑 TOKENS ACTIFS (fichiers projet /mnt/project/)
+- GitHub : `<voir fichier projet token_Github>` (fichier `token_Github`) — VALIDE, login O-N-2950
+- Jelastic : `<voir fichier projet token_full_access_JELASTIC_CLOUD_INFOMANIAK>` (`token_full_access_JELASTIC_CLOUD_INFOMANIAK`) — VALIDE
+- Infomaniak API : `<voir fichier projet Token_infomaniak>` (`Token_infomaniak`)
+- Gemini : `<voir fichier projet Google_studio_GEMINI_key>` (`Google_studio_GEMINI_key`)
+- Railway : `<voir fichier projet Token_railway_UMBRA>` (`Token_railway_UMBRA`) — Railway = STAGING uniquement
+- S3 Infomaniak Swiss Backup (umbra-db) : endpoint `https://s3.swiss-backup04.infomaniak.com`,
+  Access `<voir fichier projet infomaniak_Swiss_Backup_umbra-db>`, Secret `<voir fichier projet infomaniak_Swiss_Backup_umbra-db>`
+- ⚠️ **ACTION OLIVIER EN ATTENTE** : révoquer l'ancien token GitHub exposé `<ancien token GitHub exposé — commençant par ghp_BkM4, présent dans 2 vieux commits>`
+  (présent dans 2 commits de l'historique git public — révocation seule suffit à neutraliser)
+
+### 📦 REPOS (strictement séparés — NE JAMAIS CONFONDRE)
+- **`O-N-2950/umbra`** : PUBLIC, branche défaut `main`. C'EST LE REPO UMBRA.
+- **`O-N-2950/matcho`** : PRIVÉ, branche `master`. App DISTINCTE (réconciliation bancaire fiduciaires).
+- Autres repos NEO : PLACIO (privé, MAJUSCULES), tournepage, boom-contact, cctswiss, kido-pwa,
+  kombo-api, neo-watcher, peps-swiss-site, pepssolutions-avatar-engine, claude-skills.
+
+### ✅ LOTS LIVRÉS CETTE SESSION (commités + poussés + testés)
+- **LOT 1 — Fondations** : bug `metadata`→`meta` (migrations OK base vierge) ; 18 routes
+  `Depends(lambda:None)`→auth réelle. API passée de 50% HTTP 500 à 100% fonctionnelle.
+- **LOT 2 — Divorce MATCHO** : sel crypto `umbra-salt-2026-pep-swiss` (était matcho-salt) ;
+  loggers/domaines/emails `umbra.*` ; token GitHub purgé de deploy.sh/deploy.py ;
+  CONTEXT.md corrigé (repo umbra, stack Jelastic+PostgreSQL/PostGIS).
+- **LOT 3 — Anonymat architectural (engagement légal)** :
+  - PII Shield (`backend/services/pii_shield.py`) renforcé : masque nom, email, tél CH, AVS,
+    IBAN, date naissance, **ville/NPA suisse**, **rue+numéro**, LinkedIn, employeurs.
+    Neutralise injections **FR + EN**. Testé : ZÉRO fuite sur CV piégé.
+  - Prompt CV délimité `<profil_candidat_non_fiable>` + instruction sécurité (défense profondeur).
+  - Branché dans `cv_analyzer_prompt.py` (anonymise AVANT envoi Gemini hors Suisse) + validation
+    de sortie (bornes score 0-100, classification enum, métadonnées `_compliance`).
+  - Révélation mutuelle ATOMIQUE : verrou `with_for_update` sur le match (`umbra_matches.py`).
+  - Blocage faux-poste AUTO : champ `current_employer_ide` sur Account + `_merge_block_list()`
+    injecte l'employeur actuel dans la block-list (migration 0003). L'employeur ne peut plus
+    débusquer ses salariés en veille via un faux poste.
+- **FIX PROD CRITIQUE** : `PgEnum` (values_callable) sur les 8 colonnes Enum. L'enum
+  `AccountType(str,Enum)` persistait le NOM (CANDIDATE) au lieu de la VALEUR (candidate) →
+  500 register sur PostgreSQL, invisible en SQLite. Best practice parité dev/prod (PLACIO/Tournepage).
+- **CI nettoyée** : 1 seul workflow canonique `jelastic-deploy.yml` (3 obsolètes supprimés).
+
+### 🟡 RESTE À FAIRE (priorité décroissante) — détail dans TODO.md
+1. **Vérifier le register en prod** après le dernier déploiement du fix PgEnum (commit 71250f1).
+2. **LOT 4 — Business/Stripe** : `compute_listing_price(salaire)` SERVEUR (barème 6.5-11%) +
+   Stripe Checkout sur ce montant + webhooks + preuve d'embauche pour remboursement 50%/30j.
+3. **LOT 5 — Viral** : CV analyzer "Combien vaut mon profil ?" partageable anonymisé ;
+   indice de marché caché (PR) ; passeport de confiance portable/exportable.
+4. **Front consolidé** : un seul Next.js depuis `umbra-v3-pricing.jsx` (le plus abouti),
+   branché sur FastAPI réel. Supprimer `client/src` (tRPC mort). Migrer cv-analyser + smart-onboarding.
+5. **CORS** : aligner `ALLOWED_ORIGINS` sur le domaine réel (umbra.ch ou jcloud) — actuellement
+   umbra.work/jobs qui ne correspondent pas au déploiement.
+6. **Chiffrement PII au repos** : importer le pattern Tournepage AES-256-GCM
+   (`enc:iv:authTag:ciphertext`) pour chiffrer l'identité candidat stockée (classes A/B/C/D).
+7. **Stockage CV souverain** : S3 Infomaniak (`s3.pub1.infomaniak.cloud`, forcePathStyle,
+   region us-east-1) — runbook dans le repo Tournepage. Ne PAS confondre avec Swiss Backup.
+8. **HUNTEED** : brancher UMBRA sur Hunteed (plateforme FR recrutement externalisé, présente
+   CH+LU, offres anonymisées, succès 12% brut). Besoin : doc API Hunteed OU accès/credentials
+   d'Olivier. Intégration cible : importer leurs missions dans le matching + pousser des candidats.
+9. **MATCHO (session séparée)** : retirer le code UMBRA résiduel de matcho/backend/static/index.html.
+
+### ⚠️ BEST PRACTICES IMPORTÉES DE PLACIO & TOURNEPAGE (à réutiliser)
+- **PLACIO** : déploiement Jelastic = port 3000 + `/home/jelastic/ROOT/server.js` lanceur +
+  `restartservices` ; déploiement par COPIE de fichier (FileService.Write bloqué → execcmdbyid) ;
+  toujours récupérer le fichier LIVE avant de patcher (le prod peut avoir dérivé du repo).
+- **TOURNEPAGE** : classification PII A(chiffré)/B(clair)/C(hashé)/D(jamais stocké) ;
+  chiffrement AES-256-GCM `encryption.js` format `enc:iv:authTag:ciphertext` ;
+  runbook S3 Infomaniak souverain ; runbooks migration PII détaillés.
+
+### 🧭 RÈGLES PERMANENTES
+- Séparation stricte MATCHO/UMBRA (repos + bases + secrets séparés).
+- Jamais de clé API committée en clair.
+- Tester réellement (TestClient fiable en sandbox) AVANT chaque commit.
+- Après push → vérifier (run GitHub Actions OU ping prod). Ne jamais enchaîner sans vérifier.
+- Données recrutement = ultra-sensibles (nLPD). Anonymat = engagement LÉGAL, pas marketing.
+- Railway = staging (données fictives) ; Jelastic Infomaniak Genève = prod (données réelles).
+- Travail par lots testés ; code stable et robuste exigé.
+
+---
 
 ## Dernière mise à jour : 2026-02-27 — Session 3 : Modèle économique à la valeur réelle
 
