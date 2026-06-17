@@ -35,7 +35,8 @@
 ## 🔴 P0 — PROCHAINE SESSION
 
 - [x] ~~Vérifier register prod~~ → **FAIT**, 201 confirmé (candidat/entreprise/idempotence), /health healthy.
-- [ ] **Robustesse launcher** : `server.js` doit tuer tout squatteur du port 3000 avant de spawn (`fuser -k 3000/tcp`) pour éviter la boucle « Address already in use ». Persistance reboot fragile : systemd `nodejs.service` cassé (package.json ROOT = démo whiteboard, pas de script `start`) → le launcher tourne en **manuel détaché**. **NE PAS** faire `restartnodebyid` (casse l'app) ; relancer via `setsid node server.js`. À durcir (pm2 + `pm2 save`, ou vrai script start).
+- [x] **Robustesse launcher (en grande partie FAIT)** : `server.js` réécrit en superviseur robuste (libère le port via `fuser -k` AVANT spawn → fin des workers orphelins ; spawn en groupe de process + arrêt propre SIGTERM/SIGINT ; backoff plafonné). `package.json` a désormais un vrai script `start` (`node server.js`) → le boot systemd (`npm start`) ne devrait plus échouer. `DATABASE_URL` corrigé dans le **stored config** Jelastic (remove+add) → survit aux restarts. Fichiers versionnés dans `deploy/jelastic-ROOT/`. **Vérifié** : `npm start` relance prod saine (health ok, register 201).
+- [ ] **RESTE à vérifier (quand l'API Jelastic sera stable)** : un vrai `restartnodebyid`/reboot pour confirmer le auto-recovery systemd→npm start→launcher de bout en bout. Non testé en live aujourd'hui (API exec Jelastic instable → trop risqué sans voie de récup fiable).
 - [ ] **LOT 4 (business)** ci-dessous = priorité n°1.
 
 ## 🟠 P1 — BUSINESS (ce qui encaisse l'argent) — LOT 4

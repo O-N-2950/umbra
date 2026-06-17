@@ -1,0 +1,11 @@
+{
+  "name": "merito-launcher",
+  "version": "1.0.0",
+  "description": "Merito (PEP's Swiss SA) — superviseur uvicorn FastAPI sur Jelastic",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "private": true,
+  "license": "UNLICENSED"
+}

@@ -97,3 +97,27 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 - **Session 6-7** : analytics (Sentry/PostHog/GA4 câblés), deploy checklist.
 - **Sessions Jelastic (juin)** : migration Railway→Jelastic, découverte pattern déploiement,
   audit technique complet (7 bloquants), début améliorations code.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (suite) — DURCISSEMENT RUNTIME (robustesse)
+═══════════════════════════════════════════════════════════════════════
+
+### Réalisé (vérifié au curl : health healthy + register 201)
+- **server.js → superviseur robuste** (`deploy/jelastic-ROOT/server.js`) :
+  libère le port (`fuser -k -9 3000/tcp`) AVANT spawn → fin du « Address already in use »
+  et des workers orphelins ; spawn uvicorn en groupe de process détaché ; arrêt propre
+  SIGTERM/SIGINT (kill du groupe) ; relance avec backoff plafonné (reset si uptime > 60s).
+- **package.json** : vrai script `start` (`node server.js`) → `npm start` (commande de boot
+  systemd) fonctionne enfin (la démo whiteboard sans `start` était la cause du "Failed to start").
+- **DATABASE_URL** corrigé dans le **stored config** Jelastic via **remove + add**
+  (AddContainerEnvVars seul n'upsert pas) → survit désormais à un restart/regénération de /.jelenv.
+- Fichiers ROOT versionnés dans le repo (`deploy/jelastic-ROOT/`) — avant ils n'existaient que sur le node.
+
+### Non fait (volontairement, robustesse)
+- Test de reboot plateforme complet (`restartnodebyid`) NON exécuté : l'API exec Jelastic
+  était instable (timeouts) → pas de voie de récup fiable → reporté pour ne pas risquer prod.
+  À faire quand l'API répond : déclencher le restart et confirmer auto-recovery.
+
+### Piège appris (14)
+- **`RemoveContainerEnvVars` + `AddContainerEnvVars`** = la bonne séquence pour MODIFIER une
+  variable Jelastic existante (Add seul ignore les clés déjà présentes).
