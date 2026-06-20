@@ -156,3 +156,21 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 - L'app tourne via relance manuelle `setsid node server.js`. La survie à un reboot complet n'est
   PAS garantie (nodejs.service systemd casse toujours). `restartcontainersbygroup` l'a remontée une fois,
   mais le chemin de boot propre reste à fiabiliser. NE PAS enchaîner de relances inutiles.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (suite 3) — LANDING PREMIUM++ + fix flapping
+═══════════════════════════════════════════════════════════════════════
+
+### Livré (statique, déployé par git pull SANS restart → zéro risque API)
+- **3 sections premium** ajoutées à `index.html` (servie sur `/`), rendu vérifié Playwright, 0 erreur JS :
+  - « Comment ça marche » : parcours 4 étapes (profil anonyme → matching → entretien inversé → révélation mutuelle), pastilles numérotées reliées par une ligne copper.
+  - Bandeau confiance : Hébergé en Suisse, Conforme nLPD, Anonymat par architecture, Prix à la valeur (motif grille à bord fin).
+  - Footer premium multi-colonnes (Produit / Entreprise / Contact + PEP's Swiss SA + merito.ch).
+- Principe appliqué : tout en statique → `git pull` = live immédiat, AUCUN restart du runtime.
+
+### Piège appris (15) — FLAPPING par launchers multiples
+- Après mes multiples relances pendant l'incident P0, **4 launchers `node server.js` + 2 masters uvicorn**
+  tournaient en parallèle → bagarre sur le port 3000 → **502 intermittent (~17%)**.
+- FIX : teardown total (`pkill -9 -f "node server.js"; pkill -9 -f "uvicorn umbra_main"; fuser -k -9 3000/tcp`)
+  puis **UNE seule** relance `setsid node server.js`. Résultat : 12/12 pings à 200, 1 launcher, DB ok, register 201.
+- RÈGLE : après une relance, toujours vérifier `pgrep -fc "node server.js"` == 1. Jamais empiler les relances.
