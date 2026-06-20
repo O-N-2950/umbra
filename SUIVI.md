@@ -121,3 +121,38 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 ### Piège appris (14)
 - **`RemoveContainerEnvVars` + `AddContainerEnvVars`** = la bonne séquence pour MODIFIER une
   variable Jelastic existante (Add seul ignore les clés déjà présentes).
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (suite 2) — LANDING PREMIUM + INCIDENT P0 résolu
+═══════════════════════════════════════════════════════════════════════
+
+### Livré (vérifié en prod, rendu Playwright OK, 0 erreur JS)
+- **Landing premium Merito LIVE sur `/`** (servie depuis `backend/static/index.html`) :
+  rebrand complet UMBRA→Merito, hero « Les compétences, avant l'identité. »,
+  formulaire d'inscription candidat/recruteur câblé sur /api/v1/auth/register (magic link),
+  meta SEO, footer contact@merito.ch. Register 201 depuis le hero.
+- `/` sert désormais la landing (avant : JSON). Info JSON déplacée sur **/api** (rebrandée Merito).
+- `umbra-app.html` (SPA React) aussi rebrandé Merito.
+
+### ⚠️ Bug pré-existant identifié (NON causé par le rebrand)
+- Le SPA React `umbra-app.html` (servi sur **/app**) est **bloqué au splash** :
+  erreur fatale **« exports is not defined »** (présente AUSSI dans le backup d'origine).
+  → c'est pourquoi `/` sert `index.html` (qui rend correctement) et pas le SPA.
+  TODO: débugger le script qui utilise exports/require (CommonJS) dans umbra-app.html.
+
+### 🔴 Incident P0 (résolu) + apprentissages durables
+- Cause : relance pour charger la route `/` → l'app ne rebinde pas + **canal exec Jelastic gelé**
+  (même `echo` muet) + `restartnodebyid` échoue (nodejs.service systemd KO). Prod 502 plusieurs min.
+- **Récupération : `restartcontainersbygroup` (nodeGroup=cp, result=0)** → réinitialise le conteneur
+  ET débloque l'exec. (À retenir : c'est le levier quand l'exec est gelé et restartnodebyid échoue.)
+- Au redémarrage conteneur, **DB cassée** : `/.jelenv` régénéré avec `DATABASE_URL` **SANS mot de passe**
+  (Jelastic réinjecte une URL auto-générée qui écrase la nôtre, à CHAQUE restart).
+  - `sed -i` sur `/.jelenv` impossible (permission sur `/`).
+  - **FIX ROBUSTE** : le launcher `server.js` lit l'URL complète depuis un fichier persistant
+    **`/home/jelastic/.merito_db_url`** (chmod 600, hors repo, jamais committé) et l'impose à uvicorn.
+    → survit désormais à toute régénération de /.jelenv. DB ok + register 201 confirmés.
+
+### Réserve honnête (robustesse restante)
+- L'app tourne via relance manuelle `setsid node server.js`. La survie à un reboot complet n'est
+  PAS garantie (nodejs.service systemd casse toujours). `restartcontainersbygroup` l'a remontée une fois,
+  mais le chemin de boot propre reste à fiabiliser. NE PAS enchaîner de relances inutiles.

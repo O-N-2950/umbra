@@ -78,3 +78,9 @@
 - [ ] **(Optionnel) Site sur merito.ch** : ajouter un A/CNAME merito.ch → environnement Jelastic si le site doit vivre sur merito.ch (aujourd'hui seul le mail est configuré, pas de A). Me prévenir pour aligner `APP_URL` + CORS.
 - [ ] **Révoquer** l'ancien token GitHub exposé `<ancien token GitHub exposé — commençant par ghp_BkM4, présent dans 2 vieux commits>`
       (Settings → Developer settings → Personal access tokens)
+
+## Issu de la session landing premium (2026-06-16 suite 2)
+- [ ] **Réparer le SPA React `umbra-app.html` (/app)** : bug « exports is not defined » (CommonJS dans un `<script type="text/babel">`) → bloque au splash. C'est le vrai produit (flux onStart candidat/entreprise) à restaurer.
+- [ ] **Fiabiliser le boot** : `nodejs.service` systemd échoue → app lancée en manuel (setsid). Survie reboot non garantie. Piste : faire fonctionner `npm start` via le run-command Jelastic, ou superviser via pm2 + persistance.
+- [x] **DATABASE_URL durable** : launcher lit `/home/jelastic/.merito_db_url` (persistant, hors repo) → survit à la régénération de /.jelenv. ✅
+- [x] **Landing premium Merito sur `/`** : rebrand + inscription fonctionnelle. ✅
