@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>UMBRA — Le talent se cache. Nous le trouvons.</title>
+<title>Merito — Les compétences avant l'identité.</title>
+<meta name="description" content="Merito : le recrutement anonyme au mérite en Suisse. On évalue les compétences, jamais l'identité. Matching multicritère, prix indexé sur la valeur du poste, conforme nLPD.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -1086,7 +1087,7 @@
   }
 
   #cta-final::before {
-    content: 'UMBRA';
+    content: 'Merito';
     position: absolute;
     font-family: 'Playfair Display', serif;
     font-size: 25vw;
@@ -1153,6 +1154,18 @@
     .analyzer-layout { grid-template-columns: 1fr; }
     .upload-panel { border-right: none; border-bottom: 1px solid rgba(237,234,228,0.06); }
   }
+
+  /* ─── HERO JOIN (inscription) ─────────────────────── */
+  .hero-join{margin-top:1.6rem;max-width:520px}
+  .join-toggle{display:inline-flex;gap:.35rem;background:var(--ice-ghost);border:1px solid rgba(237,234,228,.1);border-radius:999px;padding:.25rem;margin-bottom:.85rem}
+  .join-toggle label{cursor:pointer;font-size:.8rem;color:var(--ice-dim);padding:.4rem .95rem;border-radius:999px;transition:.2s}
+  .join-toggle input{position:absolute;opacity:0;pointer-events:none}
+  .join-toggle label:has(input:checked){background:var(--copper);color:var(--void);font-weight:600}
+  .join-row{display:flex;gap:.5rem;flex-wrap:wrap}
+  .join-row input[type=email]{flex:1;min-width:230px;background:var(--void-2);border:1px solid rgba(237,234,228,.14);color:var(--ice);padding:.9rem 1rem;border-radius:12px;font-family:inherit;font-size:.95rem;outline:none;transition:.2s}
+  .join-row input[type=email]:focus{border-color:var(--copper);box-shadow:0 0 0 3px rgba(217,123,58,.15)}
+  .join-row .btn-primary{white-space:nowrap}
+  .join-msg{margin-top:.7rem;font-size:.85rem;min-height:1.2em;line-height:1.5}
 </style>
 
   <!-- ── PostHog Analytics ──────────────────────────────── -->
@@ -1201,7 +1214,7 @@
           Sentry.init({
             dsn: SENTRY_DSN,
             environment: 'production',
-            release: 'umbra@1.0.0',
+            release: 'merito@1.0.0',
             tracesSampleRate: 0.05,
             ignoreErrors: ['ResizeObserver loop', 'Non-Error promise rejection'],
             beforeSend: function(event) {
@@ -1226,7 +1239,7 @@
 <nav>
   <a href="#" class="logo" onclick="showLanding()">
     <span class="logo-dot"></span>
-    UMBRA
+    Merito
   </a>
   <ul class="nav-links">
     <li><a href="#features">Fonctionnalités</a></li>
@@ -1248,16 +1261,27 @@
     </div>
 
     <div class="hero-content">
-      <div class="hero-badge">Plateforme de recrutement anonyme — Suisse</div>
-      <h1>Le talent se <span class="accent">cache.</span><br>Nous le trouvons.</h1>
+      <div class="hero-badge">Recrutement anonyme · Suisse · nLPD</div>
+      <h1>Les compétences,<br><span class="accent">avant l'identité.</span></h1>
       <p class="hero-sub">
-        UMBRA révolutionne le recrutement suisse : anonymat architectural, 
-        matching prédictif, révélation mutuelle. Les deux parties gardent le contrôle — 
-        jusqu'au moment où elles choisissent de se révéler.
+        Merito anonymise les candidatures par architecture : on évalue le travail, jamais
+        le nom, l'âge ni l'origine. Matching multicritère, révélation mutuelle, prix indexé
+        sur la valeur du poste. Le recrutement au mérite — vraiment.
       </p>
-      <div class="hero-actions">
-        <a href="#" class="btn-primary" onclick="showAnalyzer(); return false;">Analyser un CV gratuitement</a>
-        <a href="#features" class="btn-ghost">Découvrir UMBRA</a>
+      <form id="join-form" class="hero-join" onsubmit="return joinMerito(event)">
+        <div class="join-toggle">
+          <label><input type="radio" name="atype" value="candidate" checked><span>Je cherche un poste</span></label>
+          <label><input type="radio" name="atype" value="company"><span>Je recrute</span></label>
+        </div>
+        <div class="join-row">
+          <input id="join-email" type="email" required autocomplete="email" placeholder="Votre email professionnel">
+          <button class="btn-primary" type="submit">Rejoindre Merito →</button>
+        </div>
+        <div id="join-msg" class="join-msg" role="status"></div>
+      </form>
+      <div class="hero-actions" style="margin-top:1.1rem">
+        <a href="#features" class="btn-ghost">Découvrir Merito</a>
+        <a href="#" class="btn-ghost" onclick="showAnalyzer(); return false;">Analyser un CV</a>
       </div>
     </div>
 
@@ -1319,8 +1343,8 @@
       <div class="feature-card reveal">
         <div class="feature-num">05</div>
         <div class="feature-title">Marché caché visible</div>
-        <div class="feature-desc">70% des postes suisses ne sont jamais publiés. UMBRA croise les intentions futures des entreprises avec les profils en veille passive — avant que le poste existe.</div>
-        <span class="feature-tag">Exclusif UMBRA</span>
+        <div class="feature-desc">70% des postes suisses ne sont jamais publiés. Merito croise les intentions futures des entreprises avec les profils en veille passive — avant que le poste existe.</div>
+        <span class="feature-tag">Exclusif Merito</span>
       </div>
       <div class="feature-card reveal">
         <div class="feature-num">06</div>
@@ -1396,9 +1420,9 @@
 
   <!-- CTA FINAL -->
   <section id="cta-final">
-    <div class="section-label" style="justify-content:center">Prêt à trouver le talent caché ?</div>
+    <div class="section-label" style="justify-content:center">Prêt à recruter au mérite ?</div>
     <h2>Commencez par<br>analyser un <span style="color:var(--copper);font-style:italic">CV gratuit</span></h2>
-    <p>L'analyseur IA UMBRA est disponible immédiatement, sans inscription, sans carte bancaire. Déposez un CV et recevez une analyse professionnelle en 10 secondes.</p>
+    <p>L'analyseur IA Merito est disponible immédiatement, sans inscription, sans carte bancaire. Déposez un CV et recevez une analyse professionnelle en 10 secondes.</p>
     <a href="#" class="btn-primary" onclick="showAnalyzer(); return false;">Lancer l'analyse gratuite →</a>
   </section>
 
@@ -1409,7 +1433,7 @@
 <div id="analyzer">
   <div class="analyzer-header">
     <div>
-      <div class="analyzer-title">🌑 Analyseur de CV — UMBRA IA</div>
+      <div class="analyzer-title">🌑 Analyseur de CV — Merito IA</div>
     </div>
     <div style="display:flex;align-items:center;gap:1rem;">
       <div class="analyzer-badge">Gratuit · Phase lancement</div>
@@ -1489,7 +1513,7 @@
           <div class="loading-step" id="step-1"><span class="step-dot"></span>Lecture du document…</div>
           <div class="loading-step" id="step-2"><span class="step-dot"></span>Analyse des compétences techniques…</div>
           <div class="loading-step" id="step-3"><span class="step-dot"></span>Évaluation trajectoire de carrière…</div>
-          <div class="loading-step" id="step-4"><span class="step-dot"></span>Alignement culturel UMBRA 6D…</div>
+          <div class="loading-step" id="step-4"><span class="step-dot"></span>Alignement culturel Merito 6D…</div>
           <div class="loading-step" id="step-5"><span class="step-dot"></span>Compatibilité salariale…</div>
           <div class="loading-step" id="step-6"><span class="step-dot"></span>Génération rapport final…</div>
         </div>
@@ -1593,7 +1617,7 @@
 
 <!-- FOOTER -->
 <footer>
-  <span>© 2026 PEP's Swiss SA — UMBRA · Recrutement anonyme Suisse</span>
+  <span>© 2026 PEP's Swiss SA · Merito — Recrutement anonyme en Suisse · contact@merito.ch</span>
   <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:rgba(237,234,228,0.3)">v1.0 · production</span>
 </footer>
 
@@ -1927,7 +1951,7 @@ ${jobDesc ? `POSTE RECHERCHÉ / JOB DESCRIPTION:\n${jobDesc}\n` : ''}
 ${salary ? `BUDGET SALARIAL MENSUEL: CHF ${salary}\n` : ''}
 ${sector ? `SECTEUR: ${sector}\n` : ''}
 
-CONTEXTE UMBRA (important pour l'alignement culturel):
+CONTEXTE Merito (important pour l'alignement culturel):
 - Entreprises suisses valorisent: rigueur, discrétion, ponctualité, maîtrise technique
 - Profils recherchés: autonomie, structure, capacité collaboration, flexibilité remote
 - Marché suisse: mobilité limitée aux 50km ou remote, salaires 20-30% au-dessus France
@@ -1950,7 +1974,7 @@ FORMAT DE RÉPONSE — JSON STRICT:
     },
     "culture": {
       "score": 70,
-      "comment": "Fit culturel avec contexte suisse et dimensions UMBRA (autonomie, rigueur, etc.)"
+      "comment": "Fit culturel avec contexte suisse et dimensions Merito (autonomie, rigueur, etc.)"
     },
     "salary": {
       "score": 85,
@@ -2084,7 +2108,7 @@ function resetAnalysis() {
 }
 
 
-// ═══════════════ UMBRA ANALYTICS ════════════════════════════
+// ═══════════════ Merito ANALYTICS ════════════════════════════
 // Proxy server-side — la clé PostHog ne sort pas du backend
 const umbra = {
   _distinctId: null,
@@ -2144,6 +2168,23 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // ════════════════════════════════════════════════════════════
 
+</script>
+<script>
+function joinMerito(e){e.preventDefault();
+ var email=(document.getElementById('join-email').value||'').trim();
+ var sel=document.querySelector('input[name=atype]:checked');
+ var atype=sel?sel.value:'candidate';
+ var msg=document.getElementById('join-msg');
+ if(!email){return false;}
+ msg.style.color='var(--ice-dim)';msg.textContent='Envoi en cours\u2026';
+ fetch('/api/v1/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,account_type:atype})})
+  .then(function(r){return r.json().then(function(d){return {ok:r.ok,d:d};}).catch(function(){return {ok:r.ok,d:{}};});})
+  .then(function(res){
+    if(res.ok){msg.style.color='var(--green)';msg.textContent='\u2713 Vérifiez votre boîte mail : votre lien de connexion Merito vous attend.';document.getElementById('join-form').reset();}
+    else{msg.style.color='var(--red)';msg.textContent=(res.d&&res.d.detail)?res.d.detail:'Une erreur est survenue, réessayez.';}
+  })
+  .catch(function(){msg.style.color='var(--red)';msg.textContent='Connexion impossible pour le moment, réessayez.';});
+ return false;}
 </script>
 </body>
 </html>

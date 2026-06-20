@@ -13,3 +13,4 @@ venv/
 *.log
 *.db
 *.sqlite
+backend/static/index.html.umbra.bak
