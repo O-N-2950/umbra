@@ -255,3 +255,27 @@ tournait en env *nodejs* Jelastic avec launcher maison → cause racine de tous 
 
 ### Jelastic (prod actuelle) — toujours live sous pm2 le temps de la bascule
 umbra-prod.jcloud-ver-jpc.ik-server.com — pm2 (name merito), PROCESS_MANAGER=pm2, 1 worker.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-20 (suite) — MIGRATION DATA Jelastic → Railway : FAITE & VÉRIFIÉE
+═══════════════════════════════════════════════════════════════════════
+- Méthode : depuis le node DB Jelastic 206539 (a pg_dump/psql 18.4 + egress vers Railway proxy
+  kodama.proxy.rlwy.net:18494). Le SANDBOX ne peut PAS joindre ce proxy TCP (port non-HTTP bloqué)
+  → toute opération DB Railway passe par le node Jelastic (scripts base64).
+- Connexion source Jelastic : `-h 10.101.5.59 -U webadmin -d umbra` + PGPASSWORD depuis .pgpass
+  (localhost/127.0.0.1 = ident auth qui ÉCHOUE ; il FAUT l'IP réseau 10.101.5.59).
+- ⚠️ `pg_dump --clean --if-exists | psql` N'A PAS fonctionné (DROP non appliqués → restore vide).
+  ✅ Méthode qui marche : `psql "$RAILWAY_URL" -c 'DROP SCHEMA public CASCADE; CREATE SCHEMA public;'`
+  puis `pg_dump --no-owner --no-privileges -f dump.sql` puis `psql "$RAILWAY_URL" -f dump.sql`.
+- Résultat vérifié : accounts=11, trust_scores=11, credit_balances=11, magic_tokens=11, alembic=0003.
+  Mêmes 11 que la source. ENCRYPTION_KEY identique → données chiffrées compatibles.
+- ⚠️⚠️ CONSTAT : les 11 comptes sont TOUS @example.com = comptes de TEST. AUCUN compte client réel
+  dans la base prod Jelastic. À confirmer avec Olivier (pré-lancement ?).
+- Railway URL publique DB : DATABASE_PUBLIC_URL (kodama.proxy.rlwy.net:18494) ; interne :
+  postgres.railway.internal:5432. Service Postgres + service merito-api dans projet 'merito'.
+
+### RESTE (cutover, nécessite Olivier)
+1. DNS merito.ch chez Infomaniak (records déjà fournis — je n'ai pas l'accès DNS).
+2. Au flip : re-sync final (re-DROP SCHEMA + re-dump, 30s) pour capter d'éventuels nouveaux comptes,
+   puis APP_URL/UMBRA_FRONTEND_URL = https://merito.ch, puis vérif cert Railway.
+3. Jelastic en filet quelques jours.
