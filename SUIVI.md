@@ -279,3 +279,20 @@ umbra-prod.jcloud-ver-jpc.ik-server.com — pm2 (name merito), PROCESS_MANAGER=p
 2. Au flip : re-sync final (re-DROP SCHEMA + re-dump, 30s) pour capter d'éventuels nouveaux comptes,
    puis APP_URL/UMBRA_FRONTEND_URL = https://merito.ch, puis vérif cert Railway.
 3. Jelastic en filet quelques jours.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-20 (fin) — RAILWAY EN PRODUCTION, vérifié. Reste : DNS (Olivier).
+═══════════════════════════════════════════════════════════════════════
+- App LIVE & production-grade : https://merito-api-production.up.railway.app
+  ping 200, health database:ok, landing premium, register 201 <1s. APP_URL pointe sur cette URL
+  → magic links fonctionnels DÈS MAINTENANT sur l'URL railway.
+- Data : re-sync final propre (DROP SCHEMA + redump + restore), errors=0, accounts=11 = mirror exact Jelastic.
+- GitHub auto-deploy : serviceConnect = 403 (l'app GitHub Railway n'a pas accès au repo O-N-2950/umbra ;
+  nécessite autorisation OAuth navigateur d'Olivier). En attendant, deploy via `railway up` depuis le repo local.
+- DNS merito.ch : token Infomaniak (/mnt/project/Token_infomaniak) = 401 not_authorized sur TOUS les
+  endpoints domain/DNS → PAS le scope DNS. Impossible de poser les records moi-même. NÉCESSITE Olivier
+  (interface Infomaniak ou token avec scope DNS).
+  Records à poser : @ CNAME m7r3m8kd.up.railway.app + TXT _railway-verify=6eff...faaa ;
+  www CNAME avq93gwi.up.railway.app + TXT _railway-verify.www=8455...e11.
+- CUTOVER (30s une fois DNS vérifié) : re-sync final + APP_URL=https://merito.ch + redeploy.
+- CV analyzer : `analyze_cv` existe en service mais PAS monté en route HTTP dans umbra_main (pré-existant).
