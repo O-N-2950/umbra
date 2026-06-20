@@ -28,7 +28,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, EmailStr, field_validator
 from sqlalchemy.orm import Session
@@ -209,10 +209,11 @@ def get_current_profile(
 # ── ENDPOINTS ─────────────────────────────────────────────────────────────────
 
 @router.post("/register", status_code=201)
-def register(req: RegisterRequest, db: Session = Depends(get_db)):
+def register(req: RegisterRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
     Crée un compte et envoie le magic link d'activation.
     Idempotent : si l'email existe déjà → renvoie juste le magic link.
+    L'envoi email est délégué en tâche de fond : la réponse ne bloque jamais sur le SMTP.
     """
     from db.umbra_models import Account, AccountType, CreditBalance, TrustScore
 
@@ -220,7 +221,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     if existing:
         # Email déjà inscrit → magic link de connexion
         token = _create_magic_token(existing.id, db)
-        _send_magic_link(existing.email, token, "login")
+        background_tasks.add_task(_send_magic_link, existing.email, token, "login")
         return {"message": "Magic link envoyé à votre adresse email.", "action": "login"}
 
     # Nouveau compte
@@ -243,7 +244,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
     db.commit()
 
     token = _create_magic_token(account.id, db)
-    _send_magic_link(account.email, token, "register")
+    background_tasks.add_task(_send_magic_link, account.email, token, "register")
 
     logger.info("account registered: %s (%s)", account.id[:8], req.account_type)
     return {
@@ -253,7 +254,7 @@ def register(req: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(req: LoginRequest, db: Session = Depends(get_db)):
+def login(req: LoginRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """Envoie un magic link à l'adresse email fournie."""
     from db.umbra_models import Account
 
@@ -261,7 +262,7 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     # Réponse identique qu'il existe ou non (anti-enumeration)
     if account and account.is_active:
         token = _create_magic_token(account.id, db)
-        _send_magic_link(account.email, token, "login")
+        background_tasks.add_task(_send_magic_link, account.email, token, "login")
     logger.info("login magic link requested: %s", req.email[:3] + "***")
     return {"message": "Si votre email est enregistré, vous recevrez un lien de connexion."}
 
