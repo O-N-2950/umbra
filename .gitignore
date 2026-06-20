@@ -14,3 +14,4 @@ venv/
 *.db
 *.sqlite
 backend/static/index.html.umbra.bak
+backend/static/umbra-app.html.bak

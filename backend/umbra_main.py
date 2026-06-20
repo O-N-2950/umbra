@@ -222,13 +222,29 @@ async def serve_spa(path: str = ""):
     return FileResponse(_os.path.join(_static_dir, "index.html"))
 
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def root():
+    """Sert la landing Merito (SPA React). Info JSON dispo sur /api."""
+    _spa = _os.path.join(_static_dir, "umbra-app.html")
+    if _os.path.exists(_spa):
+        return FileResponse(_spa)
+    _idx = _os.path.join(_static_dir, "index.html")
+    if _os.path.exists(_idx):
+        return FileResponse(_idx)
+    return JSONResponse(_api_info())
+
+
+@app.get("/api", include_in_schema=False)
+def api_info():
+    return _api_info()
+
+
+def _api_info():
     return {
-        "service": "UMBRA API",
+        "service": "Merito API",
         "version": "1.0.0",
         "status":  "operational",
-        "tagline": "Le talent se cache. Nous le trouvons.",
+        "tagline": "Les compétences avant l'identité.",
     }
 
 

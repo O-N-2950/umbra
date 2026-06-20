@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UMBRA — Le talent se cache. Nous le trouvons.</title>
+  <title>Merito — Les compétences avant l'identité.</title>
   <meta name="description" content="Plateforme de recrutement anonyme — Suisse & frontaliers. Matching prédictif, révélation mutuelle, anonymat architectural.">
-  <meta property="og:title" content="UMBRA — Recrutement anonyme suisse">
-  <meta property="og:description" content="Le talent se cache. Nous le trouvons.">
+  <meta property="og:title" content="Merito — Recrutement anonyme suisse">
+  <meta property="og:description" content="Les compétences avant l'identité.">
   <meta property="og:type" content="website">
   <!-- Meta tags analytics (injectés par backend) -->
   <meta name="ga4-id" content="">
@@ -35,19 +35,19 @@
   <div id="root">
     <div class="umbra-loading">
       <div class="umbra-loading-dot"></div>
-      <span style="font-size:0.8rem;color:#7a8da8;letter-spacing:0.1em">UMBRA</span>
+      <span style="font-size:0.8rem;color:#7a8da8;letter-spacing:0.1em">Merito</span>
     </div>
   </div>
 
-  <!-- UMBRA Analytics proxy -->
+  <!-- Merito Analytics proxy -->
   <script>
-    window.UMBRA_API = window.location.origin;
+    window.Merito_API = window.location.origin;
     const umbra = {
       _id: localStorage.getItem('_umbra_aid') || ('anon_' + Math.random().toString(36).slice(2)),
       track: async function(event, userType, props) {
         try {
           localStorage.setItem('_umbra_aid', this._id);
-          await fetch(window.UMBRA_API + '/api/v1/analytics/track', {
+          await fetch(window.Merito_API + '/api/v1/analytics/track', {
             method: 'POST', headers: {'Content-Type':'application/json'},
             body: JSON.stringify({ event, distinct_id: this._id, user_type: userType, properties: props })
           });
@@ -57,12 +57,12 @@
     umbra.track('landing_vue');
   </script>
 
-  <!-- App UMBRA React -->
+  <!-- App Merito React -->
   <script type="text/babel">
 import { useState, useEffect, useRef, useCallback } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════════
-   UMBRA — VERSION DÉFINITIVE
+   Merito — VERSION DÉFINITIVE
    Fusion complète v1 + v2
    
    Écrans :
@@ -640,15 +640,15 @@ function Landing({onStart}){
 
         {/* Hero */}
         <h1 className="fu1 pf" style={{fontSize:"clamp(50px,8vw,100px)",color:C.ice,marginBottom:4}}>
-          Le talent se cache.
+          Les compétences,
         </h1>
         <h2 className="fu1 pfi" style={{fontSize:"clamp(46px,7.5vw,94px)",color:C.copper,marginBottom:36}}>
-          Nous le trouvons.
+          avant l'identité.
         </h2>
 
         <p className="fu2" style={{fontSize:17,color:C.mist,lineHeight:1.75,marginBottom:16}}>
-          La première plateforme de recrutement où l'anonymat est architectural,
-          le matching est prédictif, et la confiance est certifiée.
+          La plateforme de recrutement au mérite : on évalue les compétences,
+          jamais l'identité. Anonymat par architecture, matching prédictif, confiance certifiée.
         </p>
         <p className="fu2 jb" style={{fontSize:11,color:C.dim,marginBottom:52,letterSpacing:".06em"}}>
           Pour les talents en poste. Pour les entreprises discrètes. Pour les deux.
@@ -1099,7 +1099,7 @@ function Dashboard({type,onView}){
                     {isC?m.sector:`Candidat · ${m.sector}`}
                   </span>
                   {m.certified&&<span className="pill p-gld" style={{fontSize:9}}>⭐ CERTIFIÉ · {m.hires} EMBAUCHES</span>}
-                  {m.exclusive&&<span className="pill p-tl"  style={{fontSize:9}}>◈ EXCLUSIF UMBRA</span>}
+                  {m.exclusive&&<span className="pill p-tl"  style={{fontSize:9}}>◈ EXCLUSIF Merito</span>}
                   {m.recommendation&&<span className="pill p-gr" style={{fontSize:9}}>🤝 RECOMMANDÉ</span>}
                 </div>
                 <div style={{fontSize:13,color:C.mist,marginBottom:10}}>
@@ -1177,7 +1177,7 @@ function MatchDetail({match,type,onBack,onReveal}){
           </h2>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {match.certified&&<span className="pill p-gld">⭐ EMPLOYEUR CERTIFIÉ · {match.hires} EMBAUCHES</span>}
-            {match.exclusive&&<span className="pill p-tl">◈ EXCLUSIF UMBRA</span>}
+            {match.exclusive&&<span className="pill p-tl">◈ EXCLUSIF Merito</span>}
             {match.recommendation&&<span className="pill p-gr">🤝 RECOMMANDÉ PAR UN PAIR</span>}
           </div>
         </div>
@@ -1281,7 +1281,7 @@ function MatchDetail({match,type,onBack,onReveal}){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:16}}>
             <div>
               <div className="jb" style={{fontSize:9,color:C.dim,letterSpacing:".15em",marginBottom:4}}>
-                CONFÉDÉRATION SUISSE · UMBRA NETWORK
+                CONFÉDÉRATION SUISSE · Merito NETWORK
               </div>
               <div className="pf" style={{fontSize:28,color:C.copper,marginBottom:2}}>Passeport #{match.id}</div>
               <div className="jb" style={{fontSize:9,color:match.certified?C.gold:C.mist}}>
@@ -1305,7 +1305,7 @@ function MatchDetail({match,type,onBack,onReveal}){
             ))}
           </div>
           <div className="pass-mrz">
-            P&lt;CHE UMBRA&lt;NETWORK&lt;&lt;{match.certified?"CERTIFIE&lt;PLATINE":"STANDARD&lt;&lt;&lt;&lt;&lt;"}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br/>
+            P&lt;CHE Merito&lt;NETWORK&lt;&lt;{match.certified?"CERTIFIE&lt;PLATINE":"STANDARD&lt;&lt;&lt;&lt;&lt;"}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br/>
             {match.id.replace("-","")}SCH900101{Math.floor(match.trust*10)}M2601010&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;{String(match.hireRate).padStart(2,"0")}
           </div>
         </div>
@@ -1409,7 +1409,7 @@ function TrustScreen(){
         <div style={{position:"relative",zIndex:1}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:20}}>
             <div>
-              <div className="jb" style={{fontSize:9,color:C.dim,letterSpacing:".15em",marginBottom:4}}>CONFÉDÉRATION SUISSE · UMBRA NETWORK · 2026</div>
+              <div className="jb" style={{fontSize:9,color:C.dim,letterSpacing:".15em",marginBottom:4}}>CONFÉDÉRATION SUISSE · Merito NETWORK · 2026</div>
               <div className="pf" style={{fontSize:36,color:C.copper,marginBottom:4}}>Passeport N° 7741</div>
               <span className="pill p-gld">⭐ GRADE PLATINE — EMPLOYEUR CERTIFIÉ</span>
             </div>
@@ -1454,7 +1454,7 @@ function TrustScreen(){
           ))}
 
           <div className="pass-mrz">
-            P&lt;CHE UMBRA&lt;NETWORK&lt;&lt;EMPLOYEUR&lt;CERTIFIE&lt;PLATINE&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br/>
+            P&lt;CHE Merito&lt;NETWORK&lt;&lt;EMPLOYEUR&lt;CERTIFIE&lt;PLATINE&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;<br/>
             7741000SCH9001010M2601010&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;92
           </div>
         </div>
@@ -1468,7 +1468,7 @@ function TrustScreen(){
           {icon:"💳",col:C.copper,title:"Système de crédits contacts",body:"Chaque contact coûte des crédits. Un contact suivi d'une embauche les rembourse en partie. Un concurrent curieux vide son crédit en quelques semaines."},
           {icon:"🤝",col:C.green, title:"Double confirmation obligatoire",body:"Une embauche n'est validée QUE si les deux parties confirment indépendamment et sans communication préalable. Zéro manipulation possible."},
           {icon:"👁️",col:C.signal,title:"Anti-espionnage automatique",body:"10 contacts sans embauche → suspension + tous les profils vus sont définitivement masqués pour ce compte. Un concurrent espion est rapidement neutralisé."},
-          {icon:"📊",col:C.teal,  title:"Taux d'embauche public",   body:"Votre taux d'embauche après contact est visible par tous les candidats. Votre réputation est votre actif le plus précieux sur UMBRA. Elle ne ment pas."},
+          {icon:"📊",col:C.teal,  title:"Taux d'embauche public",   body:"Votre taux d'embauche après contact est visible par tous les candidats. Votre réputation est votre actif le plus précieux sur Merito. Elle ne ment pas."},
           {icon:"⏱️",col:C.copper,title:"Chronomètre de décision",  body:"L'entreprise déclare son délai cible (ex: 3 semaines). Si elle dépasse sans motif, son score baisse. Le candidat est libéré de toute exclusivité implicite."},
           {icon:"🚪",col:C.green, title:"Off-boarding = entrée suivante",body:"Départ d'un employé ? Le système propose un off-boarding structuré. Les recommandations sont déposées. Son profil se réactive automatiquement à la date de fin."},
         ].map((item,i)=>(
@@ -1486,7 +1486,7 @@ function TrustScreen(){
           ⚠️ PROTECTION ANTI-CONCURRENT — COMMENT ÇA FONCTIONNE
         </div>
         <p style={{fontSize:15,color:C.mist,lineHeight:1.75}}>
-          Un concurrent peut créer un compte sur UMBRA pour espionner qui cherche un emploi dans son secteur.
+          Un concurrent peut créer un compte sur Merito pour espionner qui cherche un emploi dans son secteur.
           Il peut entrer — mais il <span style={{color:C.ice}}>ne peut pas y rester longtemps</span>.
           Sans embauches, son score chute progressivement. Ses crédits s'épuisent.
           Au bout de 10 contacts sans suite, son compte est <span style={{color:C.red}}>automatiquement suspendu</span>
@@ -1523,7 +1523,7 @@ function IntelScreen(){
       </div>
       <h2 className="fu1 pf" style={{fontSize:44,marginBottom:8}}>Le marché. En temps réel.</h2>
       <p className="fu2" style={{color:C.mist,fontSize:15,marginBottom:48,lineHeight:1.65}}>
-        Données agrégées et anonymisées de l'ensemble du réseau UMBRA.
+        Données agrégées et anonymisées de l'ensemble du réseau Merito.
         Actualisées toutes les 72h. Votre arme de négociation — ou d'anticipation.
       </p>
 
@@ -1550,7 +1550,7 @@ function IntelScreen(){
             <div style={{fontWeight:500,color:C.green,marginBottom:6}}>Le marché caché — rendu visible pour la première fois</div>
             <p style={{fontSize:13,color:C.mist,lineHeight:1.65}}>
               70% des postes ne sont jamais publiés. Ils se pourvoient par réseau.
-              UMBRA le rend accessible à tous : une entreprise peut poser une intention future à 6 mois.
+              Merito le rend accessible à tous : une entreprise peut poser une intention future à 6 mois.
               Un candidat en poste peut signaler qu'il serait "ouvert à la bonne offre".
               L'algorithme les connecte maintenant, pour une transition douce.
               Ce mois : <span style={{color:C.ice}}>187 intentions futures actives</span> sur le réseau.
@@ -1640,7 +1640,7 @@ function IntelScreen(){
           <div>
             <div style={{fontWeight:500,fontSize:16,marginBottom:6,color:C.copper}}>Off-boarding — La fonctionnalité que personne ne fait</div>
             <p style={{fontSize:13,color:C.mist,lineHeight:1.65,marginBottom:12}}>
-              Quand un employé quitte votre entreprise — quelle qu'en soit la raison — UMBRA propose un processus de transition structuré.
+              Quand un employé quitte votre entreprise — quelle qu'en soit la raison — Merito propose un processus de transition structuré.
               Délai de préavis géré dans la plateforme. Recommandations mutuelles déposées de façon anonyme.
               Profil du candidat réactivé automatiquement en mode veille à la date de fin de contrat.
             </p>
@@ -1720,7 +1720,7 @@ function PricingCalculator({type, onNext}){
       </h2>
       <p className="fu2" style={{color:C.mist,fontSize:15,lineHeight:1.7,marginBottom:40,maxWidth:560}}>
         {isC
-          ? "Chez UMBRA, le prix de votre annonce est proportionnel à votre prétention salariale — pas une formule d'abonnement. Vous payez selon ce que le marché vaut pour vous. Transparent. Équitable. Calculé maintenant."
+          ? "Chez Merito, le prix de votre annonce est proportionnel à votre prétention salariale — pas une formule d'abonnement. Vous payez selon ce que le marché vaut pour vous. Transparent. Équitable. Calculé maintenant."
           : "Le coût de votre annonce est indexé sur le salaire du poste à pourvoir — plus la valeur est haute, plus le tarif s'ajuste. Pas de crédits. Pas d'abonnement opaque. Une annonce, un prix, une logique."
         }
       </p>
@@ -1863,7 +1863,7 @@ function PricingCalculator({type, onNext}){
 
         {[
           {
-            name:"🌑 UMBRA",
+            name:"🌑 Merito",
             price:`${price.toLocaleString("fr-CH")} CHF`,
             note:"annonce 90 jours · anonymat complet",
             tag:"VOTRE CHOIX",
@@ -1985,7 +1985,7 @@ function PricingCalculator({type, onNext}){
 // MAIN
 // ══════════════════════════════════════════════════════════════
 
-export default function UMBRA(){
+export default function Merito(){
   const [screen,setScreen]=useState("landing");
   const [type,setType]=useState(null);
   const [tab,setTab]=useState("matches");
@@ -2017,7 +2017,7 @@ export default function UMBRA(){
         <nav className="nav">
           <div className="logo" onClick={()=>go("landing")}>
             <div className="logo-d"/>
-            UMBRA
+            Merito
           </div>
 
           {inApp&&(
@@ -2072,7 +2072,7 @@ export default function UMBRA(){
           {/* FOOTER */}
           <footer className="foot">
             <div className="logo" style={{fontSize:16}}>
-              <div className="logo-d"/>UMBRA
+              <div className="logo-d"/>Merito
             </div>
             <div className="jb" style={{fontSize:10,color:C.dim,letterSpacing:".05em"}}>
               © 2026 · SUISSE · ANONYMAT PAR DESIGN · VOS DONNÉES NE NOUS APPARTIENNENT PAS
