@@ -223,3 +223,35 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 - **Test reboot complet NON refait** (éviter une coupure délibérée avec clients actifs). Levier de
   récupération prouvé si besoin : `restartcontainersbygroup` (nodeGroup=cp).
 - TODO (avec Olivier / accès root) : valider un reboot complet à une heure creuse, ou installer pm2 startup.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-20 — MIGRATION RAILWAY (production-grade, standard NEO)
+═══════════════════════════════════════════════════════════════════════
+
+### Décision (analyse best practices de TOUS les repos NEO)
+Toutes les apps NEO tournent sur Railway (Docker/nixpacks, 1 process sur $PORT, healthcheck,
+restart ON_FAILURE). Merito avait DÉJÀ Dockerfile+railway.json+entrypoint.sh conformes mais
+tournait en env *nodejs* Jelastic avec launcher maison → cause racine de tous les incidents.
+→ Déploiement de l'image Docker sur Railway (parallèle, zéro impact prod Jelastic).
+
+### FAIT (Railway) — testé OK
+- Projet Railway **merito** (id c0e816c1-69f3-4777-93aa-e8e3b4d4a114), services **merito-api** + **Postgres**.
+- Token compte : /mnt/project/Token_railway_UMBRA (c'est un TOKEN COMPTE, pas projet → `RAILWAY_API_TOKEN`,
+  PAS `RAILWAY_TOKEN`. CLI `railway` v5.19. whoami = NEO2950 / olivier.neukomm@bluewin.ch).
+- Déploiement via `railway up` (build Docker). Migrations Alembic OK sur base fraîche. health=healthy (database ok).
+- Vars d'env réutilisent les secrets PROD (JWT_SECRET + **ENCRYPTION_KEY identiques** = indispensable pour migration data).
+- URL test : **https://merito-api-production.up.railway.app** — ping 200, register 201 en 0.2–0.9s, stable 10/10.
+- FIX code : magic link envoyé en **BackgroundTask** (register/login ne bloquent plus sur SMTP ; avant = 40s !).
+  Commit 52c1626 sur main.
+
+### RESTE À FAIRE — bascule (touche clients actifs → coordonné avec Olivier)
+1. **DNS merito.ch** (à poser chez Infomaniak — je n'ai pas l'accès DNS, seulement Jelastic) :
+   - apex `@`  : CNAME → `m7r3m8kd.up.railway.app`  + TXT `_railway-verify` = `railway-verify=6eff2f63885d2bab9d43ef1841608f8c3a344ebe2f84a949eef8df442739faaa`
+   - `www`     : CNAME → `avq93gwi.up.railway.app`   + TXT `_railway-verify.www` = `railway-verify=8455bfa22868cf6ea7f4e094b9190b988371034ac05c4ad08abd724dfc533e11`
+2. **Migration data** : `pg_dump` Jelastic (10.101.5.59:5432, db umbra, webadmin) → restore Railway Postgres.
+   Même ENCRYPTION_KEY déjà en place. À faire au moment du cutover (minimiser le gap).
+3. Mettre `APP_URL`/`UMBRA_FRONTEND_URL` = https://merito.ch après vérif DNS.
+4. Jelastk en filet quelques jours puis débranchement.
+
+### Jelastic (prod actuelle) — toujours live sous pm2 le temps de la bascule
+umbra-prod.jcloud-ver-jpc.ik-server.com — pm2 (name merito), PROCESS_MANAGER=pm2, 1 worker.
