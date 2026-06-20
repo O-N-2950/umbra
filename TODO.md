@@ -84,3 +84,9 @@
 - [ ] **Fiabiliser le boot** : `nodejs.service` systemd échoue → app lancée en manuel (setsid). Survie reboot non garantie. Piste : faire fonctionner `npm start` via le run-command Jelastic, ou superviser via pm2 + persistance.
 - [x] **DATABASE_URL durable** : launcher lit `/home/jelastic/.merito_db_url` (persistant, hors repo) → survit à la régénération de /.jelenv. ✅
 - [x] **Landing premium Merito sur `/`** : rebrand + inscription fonctionnelle. ✅
+
+## 2026-06-20 — refonte Aurore + déploiement
+- [x] Refonte home en thème Aurore (fond clair) + déploiement merito.ch (Railway, commit 765883e, deploy bf0f693f SUCCESS, vérifié 200 + visuel)
+- [ ] Analyseur CV public : remplacer l'appel direct `api.anthropic.com` par un endpoint backend proxy (sinon analyseur KO en prod)
+- [ ] Débrancher Jelastic (ancienne prod pm2) après validation durable de Railway
+- [ ] (optionnel) Redirect www→apex · GitHub auto-deploy (OAuth Railway) · corriger « Groupe NEO » → « Groupe NEUKOMM » dans docs

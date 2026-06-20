@@ -547,3 +547,14 @@ React track() ──────────► POST /api/v1/analytics/track
 - Déclencher `checkout_lancé` dans `umbra_credits.py` route checkout
 - Déclencher `abonnement_activé` dans le webhook Stripe
 - Déclencher `matching_déclenché` dans `umbra_matches.py`
+
+## 2026-06-20 — Refonte visuelle de la home (thème « Aurore ») + déploiement Railway
+- Home **merito.ch** ré-habillée en thème CLAIR « Aurore » : halos pastel, cartes verre (glass), police Plus Jakarta Sans, accent violet #7C5CFC, dégradés. **Contenu et scripts inchangés** (inscription `/api/v1/auth/register`, analyseur CV, FAQ `<details>`, compteurs animés, canvas réseau).
+- **Méthode** : calque CSS superposé injecté en fin de `<style>` + remap des variables (`--void/--ice/--copper`… → palette claire, mêmes noms = compat JS/inline) + halos via `body::before/::after` + recolor du canvas (copper→violet) en JS. Verrou `color-scheme: light only` (propriété CSS + meta) = anti dark-mode forcé du mobile.
+- **Déploiement** : commit GitHub `765883e` → build Railway via `railway up` (service `merito-api` non connecté au repo → `up` obligatoire, l'auto-deploy GitHub ne se déclenche pas). Déploiement `bf0f693f` = SUCCESS. Vérifié : ping/home 200, health `database:ok` env=production, version Aurore servie (AURORE OVERLAY + Plus Jakarta), capture live OK.
+- **Rollback** : ancien `index.html` = sha `3f7374964a103270476c67c09a1554e333ae0477` (PUT contents avec ce sha pour revenir en arrière).
+- **Design** : 7 maquettes explorées (Humain / Éditorial / Minimal / Blueprint / Riso / Aurore / Index). Olivier a retenu **Aurore**.
+
+### Points ouverts détectés cette session
+- ⚠️ **Analyseur CV public** : le JS appelle `https://api.anthropic.com/v1/messages` directement depuis le navigateur, sans clé visible → l'appel échoue en prod hors proxy. À rebrancher sur un endpoint backend (un service `cv-analyze` existe côté serveur) si on veut l'analyseur public fonctionnel. (Pré-existant, non introduit par la refonte.)
+- Débrancher l'ancienne prod **Jelastic** (filet pm2) une fois merito.ch / Railway validé dans la durée.
