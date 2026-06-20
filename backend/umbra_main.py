@@ -224,13 +224,15 @@ async def serve_spa(path: str = ""):
 
 @app.get("/", include_in_schema=False)
 def root():
-    """Sert la landing Merito (SPA React). Info JSON dispo sur /api."""
-    _spa = _os.path.join(_static_dir, "umbra-app.html")
-    if _os.path.exists(_spa):
-        return FileResponse(_spa)
+    """Sert la landing premium Merito (index.html). Info JSON dispo sur /api.
+    NB: le SPA React umbra-app.html (/app) est bloqué au splash (bug pré-existant
+    'exports is not defined') -> on sert la landing statique qui rend correctement."""
     _idx = _os.path.join(_static_dir, "index.html")
     if _os.path.exists(_idx):
         return FileResponse(_idx)
+    _spa = _os.path.join(_static_dir, "umbra-app.html")
+    if _os.path.exists(_spa):
+        return FileResponse(_spa)
     return JSONResponse(_api_info())
 
 

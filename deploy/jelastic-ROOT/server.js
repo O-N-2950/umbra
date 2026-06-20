@@ -20,6 +20,18 @@ const env = Object.assign({}, process.env, {
   PORT: String(PORT),
 });
 
+// DATABASE_URL durable : Jelastic régénère /.jelenv SANS mot de passe à chaque
+// restart. On lit l'URL complète depuis un fichier persistant local (hors repo,
+// jamais committé) et on l'impose à uvicorn. Survit à toute régénération.
+const fs = require('fs');
+const DB_URL_FILE = process.env.DB_URL_FILE || (HOME + '/.merito_db_url');
+try {
+  if (fs.existsSync(DB_URL_FILE)) {
+    const u = fs.readFileSync(DB_URL_FILE, 'utf8').trim();
+    if (u) { env.DATABASE_URL = u; console.log('[merito-launcher] DATABASE_URL chargé depuis ' + DB_URL_FILE); }
+  }
+} catch (e) { console.log('[merito-launcher] lecture DB_URL_FILE échouée: ' + e.message); }
+
 let child = null, shuttingDown = false, backoff = 2000, startedAt = 0;
 const log = (m) => console.log(`[merito-launcher ${new Date().toISOString()}] ${m}`);
 
