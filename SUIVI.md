@@ -296,3 +296,18 @@ umbra-prod.jcloud-ver-jpc.ik-server.com — pm2 (name merito), PROCESS_MANAGER=p
   www CNAME avq93gwi.up.railway.app + TXT _railway-verify.www=8455...e11.
 - CUTOVER (30s une fois DNS vérifié) : re-sync final + APP_URL=https://merito.ch + redeploy.
 - CV analyzer : `analyze_cv` existe en service mais PAS monté en route HTTP dans umbra_main (pré-existant).
+
+═══════════════════════════════════════════════════════════════════════
+## 2026-06-20 — ✅ EN PRODUCTION SUR merito.ch (Railway) — TERMINÉ
+═══════════════════════════════════════════════════════════════════════
+- DNS posé via le 2e token Infomaniak (/mnt/project/Token_infomaniak_6.2026 = token COMPTE avec scope
+  domaine/DNS ; le 1er token n'avait PAS le scope). API : https://api.infomaniak.com/2/zones/merito.ch/records
+  (GET/POST) ; domaine merito.ch id=2187678. Records Railway (TXT verify ×2, CNAME www, A apex 69.46.46.24)
+  étaient déjà en place + valides.
+- Railway : merito.ch + www.merito.ch → Verified yes, Certificate VALID. https 200, health database:ok.
+- APP_URL=UMBRA_FRONTEND_URL=https://merito.ch. og:image/twitter:image basculés sur merito.ch (commit 8d34129).
+- Data : mirror exact Jelastic = 11 comptes (tous @example.com = test ; aucun client réel en base).
+- Prod LIVE : https://merito.ch et https://www.merito.ch.
+- Jelastic (umbra-prod) reste up en filet (sous pm2). À débrancher quand validé.
+- Restes optionnels : GitHub auto-deploy (403, besoin OAuth navigateur d'Olivier) ; redirect www→apex (SEO,
+  les 2 servent avec canonical) ; monter la route HTTP du CV analyzer ; débrancher Jelastic.
