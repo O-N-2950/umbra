@@ -15,3 +15,4 @@ venv/
 *.sqlite
 backend/static/index.html.umbra.bak
 backend/static/umbra-app.html.bak
+backend/static/index.html.pre-premium.bak

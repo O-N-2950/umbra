@@ -1166,6 +1166,42 @@
   .join-row input[type=email]:focus{border-color:var(--copper);box-shadow:0 0 0 3px rgba(217,123,58,.15)}
   .join-row .btn-primary{white-space:nowrap}
   .join-msg{margin-top:.7rem;font-size:.85rem;min-height:1.2em;line-height:1.5}
+
+  /* ─── HOW IT WORKS ─────────────────────────────────── */
+  #how { background: var(--void-2); }
+  .how-intro { color: var(--ice-dim); max-width: 620px; line-height: 1.75; margin-top: 0.5rem; }
+  .how-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 2.5rem; margin-top: 4rem; position: relative; }
+  .how-steps::before { content:''; position:absolute; top:34px; left:7%; right:7%; height:1px; background:linear-gradient(90deg,transparent,rgba(217,123,58,.45),transparent); z-index:0; }
+  .how-step { position:relative; z-index:1; }
+  .how-num { font-family:'Playfair Display',serif; font-size:1.9rem; font-weight:700; color:var(--copper); line-height:1; margin-bottom:1.3rem; width:68px; height:68px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(217,123,58,.35); border-radius:50%; background:var(--void); }
+  .how-step-title { font-size:1.05rem; font-weight:600; color:var(--ice); margin-bottom:.6rem; }
+  .how-step-desc { font-size:.9rem; color:var(--ice-dim); line-height:1.65; }
+  /* ─── TRUST ────────────────────────────────────────── */
+  #trust { padding-top:5rem; padding-bottom:5rem; }
+  .trust-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1.5px; border:1.5px solid rgba(237,234,228,.06); border-radius:4px; overflow:hidden; }
+  .trust-item { background:var(--void-2); padding:2.2rem 1.8rem; transition:background .25s; }
+  .trust-item:hover { background:var(--void-3); }
+  .trust-ico { font-size:1.5rem; margin-bottom:.9rem; }
+  .trust-t { font-size:.98rem; font-weight:600; color:var(--ice); margin-bottom:.5rem; }
+  .trust-d { font-size:.82rem; color:var(--ice-dim); line-height:1.6; }
+  /* ─── FOOTER PREMIUM ───────────────────────────────── */
+  footer.footer-premium { display:block; padding:4.5rem 3rem 2rem; }
+  .foot-top { display:flex; justify-content:space-between; gap:3rem; flex-wrap:wrap; max-width:1200px; margin:0 auto; padding-bottom:3rem; border-bottom:1px solid rgba(237,234,228,.06); }
+  .foot-logo { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; color:var(--ice); display:flex; align-items:center; gap:.6rem; margin-bottom:1rem; }
+  .foot-tag { color:var(--ice-dim); font-size:.88rem; line-height:1.7; max-width:300px; }
+  .foot-cols { display:flex; gap:4rem; flex-wrap:wrap; }
+  .foot-h { font-size:.72rem; letter-spacing:.18em; text-transform:uppercase; color:var(--copper); margin-bottom:1rem; }
+  .foot-col a { display:block; color:var(--ice-dim); text-decoration:none; font-size:.88rem; margin-bottom:.65rem; transition:color .2s; }
+  .foot-col a:hover { color:var(--copper-bright); }
+  .foot-bottom { display:flex; justify-content:space-between; align-items:center; max-width:1200px; margin:1.5rem auto 0; font-size:.75rem; color:var(--ice-dim); flex-wrap:wrap; gap:1rem; }
+  .foot-ver { font-family:'JetBrains Mono',monospace; font-size:.7rem; color:rgba(237,234,228,.3); }
+  @media (max-width: 900px) {
+    .how-steps { grid-template-columns:1fr 1fr; gap:2rem; }
+    .how-steps::before { display:none; }
+    .trust-grid { grid-template-columns:1fr 1fr; }
+    .foot-top { flex-direction:column; gap:2rem; }
+    .foot-cols { gap:2.5rem; }
+  }
 </style>
 
   <!-- ── PostHog Analytics ──────────────────────────────── -->
@@ -1310,6 +1346,19 @@
     </div>
   </div>
 
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="section-label">Le parcours</div>
+    <h2>Quatre étapes,<br>zéro biais</h2>
+    <p class="how-intro">À aucun moment votre identité n'entre dans le moteur de matching. Elle ne se révèle que si vous le décidez — et seulement si l'autre partie le souhaite aussi.</p>
+    <div class="how-steps">
+      <div class="how-step reveal"><div class="how-num">01</div><div class="how-step-title">Profil anonyme</div><div class="how-step-desc">Vous décrivez vos compétences, votre expérience et vos attentes. Aucun nom, aucune photo, aucun employeur. L'identité réelle vit dans un système séparé, jamais exposée au matching.</div></div>
+      <div class="how-step reveal"><div class="how-num">02</div><div class="how-step-title">Matching au mérite</div><div class="how-step-desc">L'algorithme croise compétences, culture, géographie et fourchette salariale. Les profils se rencontrent sur ce qu'ils savent faire — pas sur leur âge, leur genre ou leur nom.</div></div>
+      <div class="how-step reveal"><div class="how-num">03</div><div class="how-step-title">Entretien inversé</div><div class="how-step-desc">Avant toute révélation, le candidat interroge l'entreprise anonymement. Le rapport de force se rééquilibre : vous décidez en connaissance de cause, sans pression.</div></div>
+      <div class="how-step reveal"><div class="how-num">04</div><div class="how-step-title">Révélation mutuelle</div><div class="how-step-desc">Les identités ne se dévoilent que si les deux parties confirment, indépendamment. Pas de CV qui circule, aucune fuite vers votre employeur actuel.</div></div>
+    </div>
+  </section>
+
   <!-- FEATURES -->
   <section id="features">
     <div class="section-label">Ce qui nous différencie</div>
@@ -1415,6 +1464,18 @@
         </ul>
         <a href="#" class="btn-primary" style="display:block;text-align:center;" onclick="showAnalyzer(); return false;">Essayer l'analyseur CV →</a>
       </div>
+    </div>
+  </section>
+
+  <!-- TRUST -->
+  <section id="trust">
+    <div class="section-label">La confiance, par défaut</div>
+    <h2>Conçu pour la Suisse,<br>pensé pour durer</h2>
+    <div class="trust-grid" style="margin-top:3rem">
+      <div class="trust-item reveal"><div class="trust-ico">🇨🇭</div><div class="trust-t">Hébergé en Suisse</div><div class="trust-d">Données et infrastructure en Suisse. Souveraineté et proximité juridique pour vos candidats comme pour vos clients.</div></div>
+      <div class="trust-item reveal"><div class="trust-ico">🛡️</div><div class="trust-t">Conforme nLPD</div><div class="trust-d">Traitement aligné sur la loi fédérale sur la protection des données. Le minimum de données, le maximum de respect.</div></div>
+      <div class="trust-item reveal"><div class="trust-ico">🔒</div><div class="trust-t">Anonymat par architecture</div><div class="trust-d">L'identité ne transite jamais dans le moteur de matching. Ce n'est pas une promesse marketing, c'est la structure même du système.</div></div>
+      <div class="trust-item reveal"><div class="trust-ico">⚖️</div><div class="trust-t">Prix à la valeur</div><div class="trust-d">Indexé sur le salaire du poste, jamais d'abonnement caché. Remboursé à 50% en cas d'embauche en moins de 30 jours.</div></div>
     </div>
   </section>
 
@@ -1616,9 +1677,37 @@
 
 
 <!-- FOOTER -->
-<footer>
-  <span>© 2026 PEP's Swiss SA · Merito — Recrutement anonyme en Suisse · contact@merito.ch</span>
-  <span style="font-family:'JetBrains Mono',monospace;font-size:0.7rem;color:rgba(237,234,228,0.3)">v1.0 · production</span>
+<footer class="footer-premium">
+  <div class="foot-top">
+    <div class="foot-brand">
+      <div class="foot-logo"><span class="logo-dot"></span>Merito</div>
+      <p class="foot-tag">Les compétences avant l'identité.<br>Le recrutement anonyme au mérite, en Suisse.</p>
+    </div>
+    <div class="foot-cols">
+      <div class="foot-col">
+        <div class="foot-h">Produit</div>
+        <a href="#how">Comment ça marche</a>
+        <a href="#features">Fonctionnalités</a>
+        <a href="#pricing">Tarifs</a>
+        <a href="#" onclick="showAnalyzer(); return false;">Analyseur de CV</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-h">Entreprise</div>
+        <a href="#trust">Confiance &amp; nLPD</a>
+        <a href="mailto:contact@merito.ch">PEP's Swiss SA</a>
+        <a href="#hero">Rejoindre Merito</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-h">Contact</div>
+        <a href="mailto:contact@merito.ch">contact@merito.ch</a>
+        <a href="https://merito.ch">merito.ch</a>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 PEP's Swiss SA · Merito — Recrutement anonyme en Suisse</span>
+    <span class="foot-ver">v1.0 · production</span>
+  </div>
 </footer>
 
 <script>
