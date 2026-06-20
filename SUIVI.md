@@ -197,3 +197,29 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 - La supervision du process n'a PAS de source de vérité unique (relances manuelles vs boot conteneur).
   → **Fiabiliser le boot** (1 process supervisé proprement) est désormais la priorité n°1 de robustesse.
   Tant que ce n'est pas fait, chaque incident peut laisser des process orphelins qui flappent.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (suite 5) — BOOT/SUPERVISION via pm2 (robustesse racine)
+═══════════════════════════════════════════════════════════════════════
+
+### Cause racine du boot cassé (identifiée)
+- `nodejs.service` est `Type=forking` et lance le wrapper `/usr/local/sbin/nodejs start`.
+- Défaut `PROCESS_MANAGER=npm` → `node server.js` en avant-plan → ne se daemonise pas →
+  systemd croit à un échec ("Failed to start", result 4182). C'est pourquoi restartnodebyid échouait.
+- Le wrapper supporte nativement pm2/forever/supervisor (lit `$PROCESS_MANAGER`).
+
+### Mise en place (FAIT)
+- **App lancée sous pm2** (`pm2 start server.js --name merito`, PM2_HOME=/home/jelastic/.pm2) →
+  pm2 daemonise, survit à la fermeture de session exec (fini les orphelins du `setsid`), relance sur crash.
+  Vérifié : `pm2 restart merito` → restarts=1, 1 seul uvicorn, app healthy. Stable 14/14.
+- **`pm2 save`** → dump persistant (/home/jelastic/.pm2/dump.pm2).
+- **`PROCESS_MANAGER=pm2` + `UVICORN_WORKERS=1`** posés dans le stored config (persistants /.jelenv) →
+  au boot, le wrapper Jelastic fera lui-même `pm2 start server.js`.
+
+### Limite connue (honnête)
+- Je suis l'utilisateur `nodejs` (uid 700), PAS root → impossible d'installer `pm2 startup` (hook systemd).
+- systemd `nodejs.service` reporte toujours "failed" (PID file Type=forking non écrit par pm2), MAIS
+  le `pm2 start server.js` du wrapper devrait quand même monter l'app au boot.
+- **Test reboot complet NON refait** (éviter une coupure délibérée avec clients actifs). Levier de
+  récupération prouvé si besoin : `restartcontainersbygroup` (nodeGroup=cp).
+- TODO (avec Olivier / accès root) : valider un reboot complet à une heure creuse, ou installer pm2 startup.
