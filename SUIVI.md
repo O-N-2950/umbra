@@ -174,3 +174,26 @@ Vérifier register prod → LOT 4 (Stripe/pricing serveur) → LOT 5 (viral) →
 - FIX : teardown total (`pkill -9 -f "node server.js"; pkill -9 -f "uvicorn umbra_main"; fuser -k -9 3000/tcp`)
   puis **UNE seule** relance `setsid node server.js`. Résultat : 12/12 pings à 200, 1 launcher, DB ok, register 201.
 - RÈGLE : après une relance, toujours vérifier `pgrep -fc "node server.js"` == 1. Jamais empiler les relances.
+
+═══════════════════════════════════════════════════════════════════════
+## Session 2026-06-16 (suite 4) — FAQ + partage social + stabilité 1 worker
+═══════════════════════════════════════════════════════════════════════
+
+### Livré (statique, git pull sans restart)
+- **Section FAQ** (5 objections clés, accordéon <details> natif sans JS) : employeur actuel,
+  définition du mérite, prix, moment de la révélation, protection des données.
+- **Partage social premium** : image OG 1200×630 on-brand (`/static/og.png`, servie en 200),
+  meta og:/twitter:summary_large_image, favicon SVG inline, theme-color.
+- **Nav** : lien « Comment ça marche ».
+
+### Stabilité — passage à 1 worker uvicorn
+- Le flapping 502 récurrent venait du mode **2 workers** : quand un worker devient instable,
+  ~50-67% des requêtes tombent en 502 (le SLB round-robin sur le worker mort).
+- FIX : relance avec **UVICORN_WORKERS=1** → 20/20 pings à 200, stable. Pour ce stade (trafic faible),
+  1 worker = robustesse > débit. (Le launcher relance tout le process en cas de crash, pas de demi-panne.)
+- Contexte : la plateforme Jelastic était elle-même perturbée (exec gelé, erreurs Hibernate côté API).
+
+### ⚠️ Urgent (cause racine de tous les flappings)
+- La supervision du process n'a PAS de source de vérité unique (relances manuelles vs boot conteneur).
+  → **Fiabiliser le boot** (1 process supervisé proprement) est désormais la priorité n°1 de robustesse.
+  Tant que ce n'est pas fait, chaque incident peut laisser des process orphelins qui flappent.
