@@ -4,7 +4,7 @@
 # ═══════════════════════════════════════════════════════════
 
 # ── Stage 1: Build ───────────────────────────────────────────
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim-bookworm AS builder
 
 WORKDIR /build
 
@@ -17,7 +17,7 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 
 
 # ── Stage 2: Runtime ─────────────────────────────────────────
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 WORKDIR /app
 
