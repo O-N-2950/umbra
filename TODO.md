@@ -87,6 +87,8 @@
 
 ## 2026-06-20 — refonte Aurore + déploiement
 - [x] Refonte home en thème Aurore (fond clair) + déploiement merito.ch (Railway, commit 765883e, deploy bf0f693f SUCCESS, vérifié 200 + visuel)
-- [ ] Analyseur CV public : remplacer l'appel direct `api.anthropic.com` par un endpoint backend proxy (sinon analyseur KO en prod)
+- [~] (relecture FR home faite 2026-06-20) Analyseur CV public : remplacer l'appel direct `api.anthropic.com` par un endpoint backend proxy (sinon analyseur KO en prod)
 - [ ] Débrancher Jelastic (ancienne prod pm2) après validation durable de Railway
 - [ ] (optionnel) Redirect www→apex · GitHub auto-deploy (OAuth Railway) · corriger « Groupe NEO » → « Groupe NEUKOMM » dans docs
+
+- [x] Relecture FR complete de la home (anglicismes -> appariement/correspondance, ponctuation FR, espaces insecables, guillemets, virgule decimale) — deploiements 7f2e143, 6e999da, 5c588ba
