@@ -1760,7 +1760,7 @@ h2{color:var(--au-ink)!important}
 
       <div class="field-group">
         <label>Description du poste (optionnel)</label>
-        <textarea id="job-description" placeholder="Ingénieur logiciel senior, maîtrise TypeScript + Node.js, expérience microservices, équipe de 8 développeurs, Arc Jurassien ou remote 3j/sem…"></textarea>
+        <textarea id="job-description" placeholder="Ingénieur logiciel senior, maîtrise TypeScript + Node.js, expérience microservices, équipe de 8 développeurs, Arc Jurassien ou télétravail 3 j/sem…"></textarea>
       </div>
 
       <div class="field-group">
@@ -2093,7 +2093,7 @@ function animateCounters() {
     const ti = setInterval(() => {
       t += 0.00004;
       special.textContent = '~' + t.toFixed(4);
-      if (t >= 0.0002) { special.textContent = '~0.0002'; clearInterval(ti); }
+      if (t >= 0.0002) { special.textContent = '~0,0002'; clearInterval(ti); }
     }, 60);
   }
 }
