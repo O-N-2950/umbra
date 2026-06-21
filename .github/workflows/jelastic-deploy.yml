@@ -1,12 +1,7 @@
 name: UMBRA Jelastic Deploy
 
 on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - backend/**
-      - scripts/deploy-jelastic.py
+  workflow_dispatch:   # neutralise: declenchement manuel uniquement (ancienne methode instable)
 
 concurrency:
   group: jelastic-deploy
