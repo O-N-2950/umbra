@@ -1,6 +1,25 @@
 # UMBRA — TODO LIST
 
-> État au 2026-06-16. Priorité décroissante. Voir CONTEXT.md (section de tête) pour le contexte complet.
+> État au 2026-06-22. Priorité décroissante. Voir CONTEXT.md (section de tête) pour le contexte complet.
+
+---
+
+## 🟢 SESSION 2026-06-22 — MIGRATION SOUVERAINE CH (Railway US → Infomaniak Jelastic Suisse)
+
+### ✅ FAIT
+- [x] **Migration souveraine nLPD** : backend Merito redéployé sur **Infomaniak Jelastic (Suisse)**. Image Docker `python:3.12-slim-bookworm` (⚠️ trixie refusé) → GHCR → pull Jelastic. App **LIVE** sur `merito-prod.jcloud-ver-jpc.ik-server.com`, /health `database:ok`.
+- [x] **Données migrées + intégrité vérifiée par checksum md5** (Railway → CH) : accounts/magic_tokens/trust_scores/credit_balances = 11 lignes, MATCH des 2 côtés. UUID (pas de séquence à resync).
+- [x] **Backup automatique souverain** : script Python pur (pg_dump → gzip → AES-256 → Swiss Backup S3 via SigV4 maison), **cron quotidien 03:00**, **restauration testée** (19 tables OK). mcli abandonné (binaire instable).
+- [x] **Audit complet des flux** : DB (CH) ✓, e-mail SMTP Infomaniak (CH, login testé) ✓, Zefix/UID (CH) ✓, CV jamais stocké en brut ✓, PII Shield actif avant LLM ✓, PostHog/Stripe inactifs ✓. Seul flux hors-CH = analyse CV → Gemini (US), anonymisée.
+
+### 🔲 RESTE (à faire par Claude)
+- [ ] **Bascule DNS merito.ch → Jelastic CH** (re-sync finale des données + fenêtre maintenance courte + SSL Let's Encrypt). Dernière étape technique avant prod publique souveraine.
+- [ ] **Restaurer le claim « Hébergé en Suisse »** sur la home une fois basculé.
+- [ ] Nettoyer le compte de test résiduel (`accounts`=12 → 11, FK à gérer) — réglé à la re-sync finale.
+- [ ] Rétention auto backups >30j ; self-host Google Fonts ; confirmer persistance cron au reboot node.
+
+### ⚠️ ACTION OLIVIER (reporté — « on le fera plus tard »)
+- [ ] **Activer l'IA souveraine Infomaniak** (AI Services) dans le Manager + créer une **clé API** → Claude branche l'analyse CV **Gemini US → Llama 3.3 70B CH** (API compatible OpenAI, bascule en minutes). Rend le claim « 100 % Suisse » entièrement vrai. Comparatif validé : coût négligeable (~5 CHF/mois pour 1000 CV), perf équivalente, souveraineté totale. **PII Shield couvre l'intérim.**
 
 ---
 

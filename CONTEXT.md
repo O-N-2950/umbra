@@ -5,6 +5,20 @@
 > L'historique des sessions 3 à 7 est conservé plus bas pour référence.
 
 ═══════════════════════════════════════════════════════════════════════
+## 🟢 MAJ 2026-06-22 — MIGRATION SOUVERAINE EN SUISSE (Railway US → Jelastic CH)
+═══════════════════════════════════════════════════════════════════════
+
+**État : Merito tourne EN SUISSE sur Infomaniak Jelastic (Docker). Données migrées + vérifiées. Backup opérationnel. Bascule DNS publique PAS encore faite.**
+
+- **Migration souveraine nLPD** : backend redéployé sur Infomaniak Jelastic (Suisse). Image Docker `python:3.12-slim-bookworm` (⚠️ Debian 13/trixie REFUSÉ par Jelastic) → GHCR (`ghcr.io/o-n-2950/umbra:latest`) → pull Jelastic (user NEO2950 + PAT). App LIVE : `merito-prod.jcloud-ver-jpc.ik-server.com`, /health `database:ok`.
+- **DB PostgreSQL 16** sur Jelastic (intIP 10.101.29.37, base `umbra`, user `webadmin`). **Migration Railway→CH vérifiée par checksum md5** (4 tables, 11 lignes, MATCH). UUID (pas de séquence à resync). 19 variables d'env sur node cp.
+- **Backup souverain** : `/var/lib/pgsql/backup_merito.py` (Python pur) : pg_dump → gzip → AES-256 (`.backup_key` = ENCRYPTION_KEY) → **Swiss Backup S3** (`s3.swiss-backup04.infomaniak.com`, bucket `default`, préfixe `merito/`) via **SigV4 maison** (PAS mcli — instable). **Cron 03:00**, crond actif, **restauration testée OK** (19 tables). Secrets node DB : `.dbpw` (41o), `.backup_key` (65o), `.s3acc`, `.s3sec`.
+- **Flux audités** : DB CH ✓ ; SMTP Infomaniak CH (`_send_via_smtp`, login testé) ✓ ; Zefix/UID admin.ch ✓ ; CV jamais stocké en brut (profil anonyme dissocié) ✓ ; **PII Shield** anonymise avant Gemini ✓ ; PostHog/Stripe INACTIFS ✓. Seul flux hors-CH = analyse CV → **Gemini US** (anonymisé). Mineurs : Google Fonts (IP), OpenIBAN.
+- **Test fonctionnel CH** : register HTTP 201 (compte créé DB CH), magic link 200, SMTP login OK, /credits/pricing 200. ⚠️ `/sectors` vide (non seedé — Railway idem, pas une régression).
+- **RESTE avant prod publique** : (1) **bascule DNS merito.ch → Jelastic CH** + re-sync finale + SSL ; (2) restaurer claim « Hébergé en Suisse » ; (3) **[ACTION OLIVIER, reportée]** activer IA Infomaniak + clé → brancher CV Gemini→Llama 3.3 70B (compatible OpenAI ; coût négligeable, perf équivalente ; PII Shield couvre l'intérim).
+- **Accès Jelastic** : token `/mnt/project/token_full_access_JELASTIC_CLOUD_INFOMANIAK`, API `app.jpc.infomaniak.com/1.0/`, env `merito-prod`, node cp 207686 / DB 207685. ExecCmd node DB = user `postgres` mais **HOME=/root** (forcer HOME=/var/lib/pgsql). Shell = **dash**. Scripts via **base64**. pg_dump password via PGPASSWORD (jamais dans l'URL).
+
+═══════════════════════════════════════════════════════════════════════
 ## 🟢 MAJ 2026-06-16 (soir) — MERITO + MAGIC LINK SMTP OPÉRATIONNEL
 ═══════════════════════════════════════════════════════════════════════
 
