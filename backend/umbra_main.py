@@ -178,6 +178,15 @@ app.include_router(trust_router, prefix="/api/v1")
 # Credits
 from api.umbra_credits import router as credits_router
 app.include_router(credits_router, prefix="/api/v1")
+
+# Health profond (monitoring — pattern soluris) : racine, pas /api/v1
+try:
+    from api.health_deep import router as health_deep_router
+    app.include_router(health_deep_router)
+    logger.info("✅ Health deep router chargé")
+except Exception as e:
+    logger.warning(f"⚠️ Health deep non chargé: {e}")
+
 # Analytics (PostHog proxy + events list)
 try:
     from api.umbra_analytics import router as analytics_router
