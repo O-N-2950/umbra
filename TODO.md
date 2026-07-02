@@ -1,6 +1,6 @@
 # UMBRA — TODO LIST
 
-> État au 2026-06-22. Priorité décroissante. Voir CONTEXT.md (section de tête) pour le contexte complet.
+> État au 2026-06-25. Priorité décroissante. Voir CONTEXT.md (section de tête) pour le contexte complet.
 
 ---
 
@@ -11,6 +11,15 @@
 - [x] **Données migrées + intégrité vérifiée par checksum md5** (Railway → CH) : accounts/magic_tokens/trust_scores/credit_balances = 11 lignes, MATCH des 2 côtés. UUID (pas de séquence à resync).
 - [x] **Backup automatique souverain** : script Python pur (pg_dump → gzip → AES-256 → Swiss Backup S3 via SigV4 maison), **cron quotidien 03:00**, **restauration testée** (19 tables OK). mcli abandonné (binaire instable).
 - [x] **Audit complet des flux** : DB (CH) ✓, e-mail SMTP Infomaniak (CH, login testé) ✓, Zefix/UID (CH) ✓, CV jamais stocké en brut ✓, PII Shield actif avant LLM ✓, PostHog/Stripe inactifs ✓. Seul flux hors-CH = analyse CV → Gemini (US), anonymisée.
+
+### ✅ FAIT (suite — sessions 2026-06-24/25)
+- [x] **Vague 1 best practices NEO complète** :
+  - `scripts/check_claims.py` + `legal/claims.md` — garde-fou claims publics (pattern boom-contact). Home actuelle : 0 claim bloquant ; « 100% suisse » auto-interdit tant que `MERITO_SOVEREIGN_AI` ≠ true.
+  - `.github/workflows/build-guard.yml` (pattern winwin-v2) — syntaxe + claims + boot réel de l'app (uvicorn + /ping + /health/deep) sur Postgres CI. **Vert dès le 1er run.**
+  - `backend/api/health_deep.py` (pattern soluris) — GET /health/deep : database (19 tables), migrations (0003_current), smtp (mail.infomaniak.com:465), ai_llm, disk. Déployé Jelastic CH, **healthy 273 ms**.
+  - `scripts/readiness_gate.py` (pattern soluris) — gate GO/NO-GO (claims+ping+health+deep+home+openapi). **🟢 GO 6/6 sur l'instance CH.**
+- [x] **Module QR-facture suisse** `backend/services/qr_invoice.py` : QR-IBAN CH26 3080… (référence QRR → rapprochement auto, synergie MATCHO), sans TVA (pas de CA), adresse RC Courgenay. Facture démo CHF 290 livrée + scannable. Non branché à une route (zéro impact prod) ; branchement ≈ 30 min quand facturation activée.
+- [x] Redeploy Jelastic image :latest vérifié (≈100 s d'indispo URL de test uniquement ; merito.ch public intouché — Railway n'auto-déploie pas, ancien code stable).
 
 ### 🔲 RESTE (à faire par Claude)
 - [ ] **Bascule DNS merito.ch → Jelastic CH** (re-sync finale des données + fenêtre maintenance courte + SSL Let's Encrypt). Dernière étape technique avant prod publique souveraine.

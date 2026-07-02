@@ -5,6 +5,19 @@
 > L'historique des sessions 3 à 7 est conservé plus bas pour référence.
 
 ═══════════════════════════════════════════════════════════════════════
+## 🟢 MAJ 2026-06-25 — VAGUE 1 BEST PRACTICES + QR-FACTURE (gate 🟢 GO)
+═══════════════════════════════════════════════════════════════════════
+
+**Qualité/ops installés (Vague 1 du catalogue NEO) — tout testé et déployé :**
+- `scripts/check_claims.py` + `legal/claims.md` : garde-fou des claims publics. Bloque superlatifs/certifications/souveraineté absolue. `MERITO_SOVEREIGN_AI=true` (le jour de l'IA CH) débloquera « 100% suisse ».
+- `.github/workflows/build-guard.yml` : syntaxe + claims + boot smoke réel (uvicorn+Postgres CI, /ping + /health/deep). Vert au 1er run (sha 4dd465d).
+- `backend/api/health_deep.py` → GET /health/deep (racine, router défensif) : database/migrations/smtp/ai_llm/disk, chronométrés. En prod CH : healthy, 19 tables, rev 0003_current, SMTP OK, disk 94.9% libre.
+- `scripts/readiness_gate.py <url>` : GO/NO-GO avant toute mise en prod (à utiliser AVANT et APRÈS la bascule DNS). Instance CH = 🟢 GO 6/6.
+- `backend/services/qr_invoice.py` : QR-factures suisses (QR-IBAN `CH26 3080 8004 7066 1115 1` ≠ IBAN normal CH95 8080…, réf QRR 27 chiffres mod10r → rapprochement auto MATCHO). Sans TVA (pas de CA — décision Olivier). PEP's Swiss SA, Bellevue 7, 2950 Courgenay, UID CHE-476.484.632. Autonome, non routé (zéro impact).
+- Redeploy Jelastic : `redeploycontainersbygroup` (cp, tag latest) — l'API timeout mais l'op continue (~100 s) ; merito.ch (Railway, ancien code) jamais impacté ; Railway n'auto-déploie PAS les push (404 sur /health/deep publique).
+- **Rituel institué (mémoire Claude)** : lire CONTEXT.md+TODO.md en début de session ; les mettre à jour + push [skip ci] en fin de session.
+
+═══════════════════════════════════════════════════════════════════════
 ## 🟢 MAJ 2026-06-22 — MIGRATION SOUVERAINE EN SUISSE (Railway US → Jelastic CH)
 ═══════════════════════════════════════════════════════════════════════
 
